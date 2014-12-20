@@ -9,6 +9,8 @@
 #include <fstream>
 #include <complex>
 
+namespace ocl_helpers
+{
 //note: some of these tricks require c++11 support
 std::tuple<cl_uint, cl_platform_id, bool> get_platform_id(const std::string& target_platform)
 {
@@ -57,7 +59,26 @@ bool load_kernel_file(const std::string& file_name, std::string& kernel_source)
     return true;
 }
 
-int main()
+struct fractal_params
+{
+  int imheight;
+  int imwidth;
+  int imdepth;
+
+  static constexpr cl_int MAX_ITER = 80;
+  static constexpr cl_int ORDER = 8;
+
+  cl_float MIN_LIMIT;
+  cl_float MAX_LIMIT;
+  cl_float BOUNDARY_VAL;
+
+  std::string fractal_name;
+};
+
+}
+
+template <typename data_t>
+void run_oclfractal(std::vector<data_t>& h_image_stack, const ocl_helpers::fractal_params& params)
 {
     const std::string target_platform_id {"NVIDIA"};
     cl_uint ocl_platform;

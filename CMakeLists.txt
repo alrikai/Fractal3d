@@ -25,7 +25,7 @@ if (NOT PCL_COMMON_FOUND OR NOT PCL_SURFACE_FOUND OR NOT PCL_VISUALIZATION_FOUND
 else ()
   include_directories(${PCL_INCLUDE_DIRS})
   add_definitions(${PCL_DEFINITIONS})
-  link_directories(${PCL_LIBRARY_DIRS})
+#  link_directories(${PCL_LIBRARY_DIRS})
 
 	#SET(VTK_LIB_D "/usr/local/lib/vtk-5.10")
 	#link_directories(${VTK_LIB_D})

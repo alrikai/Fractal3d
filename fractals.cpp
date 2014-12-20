@@ -113,4 +113,32 @@ void ocl_fractal3d (const std::string& fractal_id)
 
 
 void ocl_fractal2d (const std::string& fractal_id)
-{}
+{
+  using data_t = int;
+  ocl_helpers::fractal_params params;
+  params.imheight = 4*128;
+  params.imwidth = 4*128;
+  params.imdepth = 4*128;
+  params.MIN_LIMIT = -1.2f;
+  params.MAX_LIMIT =  1.2f;
+
+  params.BOUNDARY_VAL = 2.0f;
+  params.fractal_name = fractal_id;
+
+  //NOTE: need to dynamically allocate, as the memory requirements become prohibitive very fast (e.g. 512 x 512 x 512 of ints --> 4*2^27 bytes)
+  std::vector<data_t> h_image_stack (params.imheight * params.imwidth * params.imdepth);
+  std::fill(h_image_stack.begin(), h_image_stack.end(), 0);
+
+  run_ocl_fractal<data_t>(h_image_stack, params);
+  std::cout << "Making Point Cloud... " << std::endl;
+
+//-------------------------------------------------------
+  
+//  using ptcloud_t = pcl::PointCloud<pcl::PointXYZ>::Ptr;
+//  ptcloud_t pt_cloud (new pcl::PointCloud<pcl::PointXYZ>());
+
+  using pt_t = point_type;
+  pointcloud<pt_t> pt_cloud;
+  make_pointcloud<data_t, pointcloud, pt_t> (h_image_stack, params, pt_cloud);
+
+}
