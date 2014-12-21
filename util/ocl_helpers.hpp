@@ -1,9 +1,16 @@
 #ifndef FRACTAL_OCL_HELPERS_HPP
 #define FRACTAL_OCL_HELPERS_HPP
 
+#include <CL/cl.hpp>
+
+#include <tuple>
+#include <string>
+#include <vector>
+#include <fstream>
+
 namespace ocl_helpers
 {
-//note: some of these tricks require c++11 support
+
 std::tuple<cl_uint, cl_platform_id, bool> get_platform_id(const std::string& target_platform)
 {
     //get the number of available platforms
@@ -57,8 +64,8 @@ struct fractal_params
   int imwidth;
   int imdepth;
 
-  static constexpr cl_int MAX_ITER = 80;
-  static constexpr cl_int ORDER = 8;
+  static constexpr int MAX_ITER = 80;
+  static constexpr int ORDER = 8;
 
   cl_float MIN_LIMIT;
   cl_float MAX_LIMIT;

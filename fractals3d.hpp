@@ -9,7 +9,6 @@
 #include <vector>
 #include <string>
 #include <tuple>
-#include <fstream>
 #include <complex>
 #include <memory>
 #include <array>
@@ -17,8 +16,9 @@
 #include <stdexcept>
 
 #include "cpu_fractal.hpp"
+#include "util/ocl_helpers.hpp"
 
-namespace ocl_helpers
+namespace fractal_helpers
 {
 
 struct fractal_options
@@ -49,72 +49,7 @@ struct fractal_options
   }
 };
 
-//note: some of these tricks require c++11 support
-std::tuple<cl_uint, cl_platform_id, bool> get_platform_id(const std::string& target_platform)
-{
-    //get the number of available platforms
-    cl_uint num_platforms;
-    clGetPlatformIDs (0, nullptr, &num_platforms);
-    
-    //get the platform IDs
-    std::vector<cl_platform_id> platform_IDs (num_platforms);
-    clGetPlatformIDs(num_platforms, &platform_IDs[0], nullptr);
-
-    //look for the target platform 
-    cl_uint target_platform_ID = -1;
-    bool found_target = false;
-    for(cl_uint i = 0; i < num_platforms; ++i)
-    {
-        size_t platform_size;
-        clGetPlatformInfo(platform_IDs[i], CL_PLATFORM_PROFILE, 0, nullptr, &platform_size);
-        
-        std::vector<char> curr_platform(platform_size);       
-        clGetPlatformInfo (platform_IDs[i], CL_PLATFORM_NAME, platform_size, &curr_platform[0], nullptr);
-        
-        auto platform_profile = std::string(curr_platform.begin(), curr_platform.end());
-        std::cout << "Platform @" << i << ": " << platform_profile << std::endl;
-        if (platform_profile.find(target_platform) != std::string::npos) 
-        {
-            target_platform_ID = i;
-            found_target = true;
-            break;
-        }
-    }
-    return std::make_tuple(target_platform_ID, platform_IDs[target_platform_ID], found_target);
-}
-
-bool load_kernel_file(const std::string& file_name, std::string& kernel_source)
-{
-    std::ifstream kernel_source_file(file_name);
-    std::string str; 
-
-    int i = 0;
-    while (std::getline(kernel_source_file, str))
-    {
-        std::cout << "@ " << i++ << "  " << str << std::endl;
-        kernel_source += str; 
-    }
-
-    return true;
-}
-
-struct fractal_params
-{
-  int imheight;
-  int imwidth;
-  int imdepth;
-
-  static constexpr cl_int MAX_ITER = 80;
-  static constexpr cl_int ORDER = 8;
-
-  cl_float MIN_LIMIT;
-  cl_float MAX_LIMIT;
-  cl_float BOUNDARY_VAL;
-
-  std::string fractal_name;
-};
-
-} //namespace ocl_helpers
+} //namespace fractal_helpers
 
 template <typename data_t, template <class> class ptcloud_t, typename pt_t>
 void make_pointcloud(const std::vector<data_t>& h_image_stack, const ocl_helpers::fractal_params& params, ptcloud_t<pt_t>& pt_cloud)
@@ -122,7 +57,7 @@ void make_pointcloud(const std::vector<data_t>& h_image_stack, const ocl_helpers
   auto start = std::chrono::high_resolution_clock::now();
   
   //for the cpu version
-  bool run_comparison = !false;
+  bool run_comparison = false;
   cpu_fractals::FractalLimits<data_t> limits(cpu_fractals::PixelPoint<size_t>(params.imheight, params.imwidth, params.imdepth));
 
   for (int k = 0; k < params.imdepth; ++k)
@@ -146,18 +81,29 @@ void make_pointcloud(const std::vector<data_t>& h_image_stack, const ocl_helpers
 
               if(run_comparison)
               {
-              auto x_point = limits.offset_X(j);
-              bool is_valid;
-              size_t iter_num;
-              std::tie(is_valid, iter_num) = cpu_fractals::mandel_point<data_t,params.MAX_ITER>
-                  (cpu_fractals::PixelPoint<data_t>(y_point,x_point,z_point), params.ORDER);  
-               
-              slice_diff(i,j) = iter_num - fractal_itval;  
-              cpu_slice(i,j) = iter_num;
+                auto x_point = limits.offset_X(j);
+                bool is_valid;
+                size_t iter_num;
+                std::tie(is_valid, iter_num) = cpu_fractals::mandel_point<data_t,params.MAX_ITER>
+                    (cpu_fractals::PixelPoint<data_t>(y_point,x_point,z_point), params.ORDER);  
+                 
+                slice_diff(i,j) = iter_num - fractal_itval;  
+                cpu_slice(i,j) = iter_num;
               }
-              ocl_slice(i,j) = fractal_itval;
+
+              if(fractal_itval == params.MAX_ITER-1)
+                ocl_slice(i,j) = 255;
           }
       }
+
+      /*
+      std::string slice_name {"ocl_slice"};
+      cv::imshow(slice_name, ocl_slice);
+      cv::waitKey(33);
+      */
+
+      auto px_sum = cv::sum(cv::sum(ocl_slice)) / 255;
+      std::cout << "Image " << k << " Generated... has " << ((px_sum[0] > 0) ? std::to_string(px_sum[0]):"NO") << " non-zero elements" << std::endl;
 
       if(run_comparison)
       {
@@ -220,7 +166,7 @@ void run_ocl_fractal(std::vector<data_t>& h_image_stack, const ocl_helpers::frac
     // Create a command queue for the device in the context
     cl_command_queue ocl_command_queue = clCreateCommandQueue(ocl_context, device_id, 0, nullptr);
 
-    const std::string file_name { "../ocl_fractal.cl" };
+    const std::string file_name { "../ocl_fractals/fractal3d.cl" };
     std::string program_source;
     ocl_helpers::load_kernel_file(file_name, program_source);
 
@@ -230,7 +176,7 @@ void run_ocl_fractal(std::vector<data_t>& h_image_stack, const ocl_helpers::frac
     if(ocl_error_num != CL_SUCCESS)
         std::cout << "ERROR @ PROGRAM CREATION -- " << ocl_error_num << std::endl;
 
-    const std::string ocl_fractal_id = ocl_helpers::fractal_options::get_ocl_id(params.fractal_name);
+    const std::string ocl_fractal_id = fractal_helpers::fractal_options::get_ocl_id(params.fractal_name);
     const std::string cl_opts {"-D FRACTAL_ID=" + ocl_fractal_id};
     ocl_error_num = clBuildProgram(ocl_program, 0, 0, cl_opts.c_str(), nullptr, nullptr);
     if(ocl_error_num != CL_SUCCESS)
@@ -284,6 +230,9 @@ void run_ocl_fractal(std::vector<data_t>& h_image_stack, const ocl_helpers::frac
                                             &h_image_stack[h_image_stack_offset], 0, 0, 0);
         if(ocl_error_num != CL_SUCCESS)
             std::cout << "ERROR @ DATA RETRIEVE -- " << ocl_error_num << std::endl;
+
+        auto slice_sum = std::accumulate(&h_image_stack[h_image_stack_offset], &h_image_stack[h_image_stack_offset] + params.imheight * params.imwidth, 0);
+        std::cout << "slice " << depth_idx << " sum: " << slice_sum << std::endl;
     }
 
     auto end = std::chrono::high_resolution_clock::now();

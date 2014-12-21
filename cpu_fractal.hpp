@@ -1,7 +1,9 @@
-
+#ifndef CPU_FRACTAL_HPP
+#define CPU_FRACTAL_HPP
 #include <opencv2/opencv.hpp>
 
 #include <tuple>
+#include "util/ocl_helpers.hpp"
 
 namespace cpu_fractals
 {
@@ -44,24 +46,24 @@ struct FractalLimits
 };
 
 
-template <typename PixelType, size_t NUM_ITER>
-std::tuple<bool, size_t> mandel_point(const PixelPoint<PixelType> px_idx, const int order) 
+template <typename pixel_t, size_t NUM_ITER>
+std::tuple<bool, size_t> mandel_point(const PixelPoint<pixel_t> px_idx, const int order) 
 {
-    PixelPoint<PixelType> coords (0, 0, 0);
+    PixelPoint<pixel_t> coords (0, 0, 0);
 
     size_t iter_num = 0;
     bool is_valid = true;
     for (; iter_num < NUM_ITER; ++iter_num)
     {
         //get polar coordinates
-        PixelType r = coords.get_magnitude();
-        PixelType theta = order * std::atan2(std::sqrt(coords.row*coords.row + coords.col*coords.col), coords.depth);
-        PixelType phi = order * std::atan2(coords.row, coords.col);
+        pixel_t r = coords.get_magnitude();
+        pixel_t theta = order * std::atan2(std::sqrt(coords.row*coords.row + coords.col*coords.col), coords.depth);
+        pixel_t phi = order * std::atan2(coords.row, coords.col);
 
         assert(!std::isnan(theta));
         assert(!std::isnan(phi));
 
-        PixelType r_factor = std::pow(r, order);
+        pixel_t r_factor = std::pow(r, order);
         coords.col = r_factor * std::sin(theta) * std::cos(phi);
         coords.row = r_factor * std::sin(theta) * std::sin(phi);
         coords.depth = r_factor * std::cos(theta);
@@ -77,5 +79,53 @@ std::tuple<bool, size_t> mandel_point(const PixelPoint<PixelType> px_idx, const 
     return std::make_tuple(is_valid, iter_num);
 }
 
+template <typename pixel_t>
+void run_cpu_fractal(std::vector<pixel_t>& h_image_stack, const ocl_helpers::fractal_params& params)
+{
+    FractalLimits<double> limits(PixelPoint<size_t>(params.imheight, params.imwidth, params.imdepth)); 
+
+    cv::namedWindow("cpuslice", CV_WINDOW_AUTOSIZE);
+
+    for (size_t z = 0; z < params.imdepth; ++z)
+    {
+        auto z_point = limits.offset_Z(z);
+        const int slice_offset = params.imheight * params.imwidth * z;
+        cv::Mat_<pixel_t> image = cv::Mat_<pixel_t>(params.imheight, params.imwidth, &h_image_stack[slice_offset]);
+        image = cv::Mat_<pixel_t>::zeros(params.imheight, params.imwidth);
+        for (size_t y = 0; y < params.imheight; ++y)
+        {
+            auto y_point = limits.offset_Y(y);
+            for (size_t x = 0; x < params.imwidth; ++x)
+            {
+                auto x_point = limits.offset_X(x);
+
+                bool is_valid;
+                size_t iter_num;
+                std::tie(is_valid, iter_num) = mandel_point<double, params.MAX_ITER>
+                    (PixelPoint<double>(y_point,x_point,z_point), params.ORDER);   
+
+                if(is_valid)
+                {
+                    image(y,x) = 255;
+                    //cloud_indices.emplace_back(x, y, z);
+                }
+            }   
+        }
+
+        auto px_sum = cv::sum(cv::sum(image)) / 255;
+        std::cout << "Image " << z << " Generated... has " << ((px_sum[0] > 0) ? std::to_string(px_sum[0]):"NO") << " non-zero elements" << std::endl;
+
+        std::string cpuslice_fname {"cpuslice_" + std::to_string(z) + ".png"};
+        cv::imwrite(cpuslice_fname, image);
+
+        cv::Mat_<pixel_t> display_image = image;
+        cv::imshow("cpuslice", display_image);
+        cv::waitKey(10);
+    }
+}
+
+
 
 }
+
+#endif

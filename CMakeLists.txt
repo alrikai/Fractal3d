@@ -1,8 +1,10 @@
 cmake_minimum_required(VERSION 2.8)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ggdb -Wall -std=c++11 -Wno-reorder")
-add_executable(fractals fractals.cpp)
-add_executable(ocl_fractals3dmesh mesh_vis.cpp) 
+add_executable(ocl_fractals fractals.cpp)
+
+#add_executable(ocl_fractals3dmesh fractals.cpp) 
+#add_library(meshvis visualize/mesh_vis.cpp)
 
 set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/Modules")
 find_package(OpenCL REQUIRED)
@@ -15,9 +17,7 @@ endif( OPENCL_HAS_CPP_BINDINGS )
 
 find_package(OpenCV COMPONENTS core highgui REQUIRED)
 
-target_link_libraries(fractals ${OPENCL_LIBRARIES} ${OpenCV_LIBS})
-
-
+target_link_libraries(ocl_fractals ${OPENCL_LIBRARIES} ${OpenCV_LIBS})
 
 find_package(PCL COMPONENTS common surface visualization features)
 if (NOT PCL_COMMON_FOUND OR NOT PCL_SURFACE_FOUND OR NOT PCL_VISUALIZATION_FOUND OR NOT PCL_FEATURES_FOUND)

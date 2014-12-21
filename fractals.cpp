@@ -1,6 +1,7 @@
 #include "fractals3d.hpp"
 //#include "fractals2d.hpp"
-#include "mesh_vis.h"
+#include "visualize/mesh_vis.h"
+#include "cpu_fractal.hpp"
 
 #include <vector>
 #include <string>
@@ -32,9 +33,14 @@ struct pointcloud
 
 void ocl_fractal3d (const std::string& fractal_id);
 void ocl_fractal2d (const std::string& fractal_id);
+void cpu_fractal2d (const std::string& fractal_id);
 
 int main(int argc, char* argv[])
 {
+
+//  cpu_fractal2d ("");
+//  return 0;
+
   if(argc <= 1)
   {
     std::cout << "Invalid Arguments -- Usage: <2D | 3D> <fractal_name>" << std::endl;
@@ -50,7 +56,7 @@ int main(int argc, char* argv[])
         arg_cnt++;
       });
 
-  auto fracids = ocl_helpers::fractal_options::get_ids();
+  auto fracids = fractal_helpers::fractal_options::get_ids();
   auto fractal_id = std::find(fracids.begin(), fracids.end(), user_args.at(1));
   if(fractal_id != fracids.end())
   {
@@ -59,7 +65,7 @@ int main(int argc, char* argv[])
   else
   {
     std::cout << "NOTE: Invalid fractal selected. Possible options: " << std::endl;
-    std::for_each(user_args.begin(), user_args.end(), [](const std::string& arg)
+    std::for_each(fracids.begin(), fracids.end(), [](const std::string& arg)
     {
       std::cout << arg << std::endl;
     });
@@ -77,13 +83,33 @@ int main(int argc, char* argv[])
   return 0;
 }
 
+void cpu_fractal2d (const std::string& fractal_id)
+{
+  using data_t = int;
+  ocl_helpers::fractal_params params;
+  params.imheight = 128;
+  params.imwidth = 128;
+  params.imdepth = 128;
+  params.MIN_LIMIT = -1.2f;
+  params.MAX_LIMIT =  1.2f;
+
+  params.BOUNDARY_VAL = 2.0f;
+  params.fractal_name = fractal_id;
+
+  //NOTE: need to dynamically allocate, as the memory requirements become prohibitive very fast (e.g. 512 x 512 x 512 of ints --> 4*2^27 bytes)
+  std::vector<data_t> h_image_stack (params.imheight * params.imwidth * params.imdepth);
+  std::fill(h_image_stack.begin(), h_image_stack.end(), 0);
+
+  cpu_fractals::run_cpu_fractal<data_t>(h_image_stack, params);
+}
+
 void ocl_fractal3d (const std::string& fractal_id)
 {
   using data_t = int;
   ocl_helpers::fractal_params params;
-  params.imheight = 4*128;
-  params.imwidth = 4*128;
-  params.imdepth = 4*128;
+  params.imheight = 128;
+  params.imwidth = 128;
+  params.imdepth = 128;
   params.MIN_LIMIT = -1.2f;
   params.MAX_LIMIT =  1.2f;
 
@@ -116,9 +142,9 @@ void ocl_fractal2d (const std::string& fractal_id)
 {
   using data_t = int;
   ocl_helpers::fractal_params params;
-  params.imheight = 4*128;
-  params.imwidth = 4*128;
-  params.imdepth = 4*128;
+  params.imheight = 128;
+  params.imwidth = 128;
+  params.imdepth = 128;
   params.MIN_LIMIT = -1.2f;
   params.MAX_LIMIT =  1.2f;
 
