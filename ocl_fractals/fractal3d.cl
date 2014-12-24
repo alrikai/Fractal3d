@@ -53,8 +53,12 @@ __kernel void fractal3d
 
         theta = ORDER * atan2(sqrt(coords.s0 * coords.s0 + coords.s1 * coords.s1), coords.s2);
         phi =   ORDER * atan2(coords.s0, coords.s1);
-
-        coords = mandelbulb(dim_limits, r, theta, phi);  
+        
+        #if (FRACTALID == MANDELBROT)
+          coords = mandelbulb(dim_limits, r, theta, phi);  
+        #elif (FRACTALID == JULIA)
+          coords = juliabulb(dim_limits, r, theta, phi);  
+        #endif
     }
     image[get_global_id(0) * dimensions.s1 + get_global_id(1)] = max(0, iter_num-1);
 }                      

@@ -176,8 +176,16 @@ void run_ocl_fractal(std::vector<data_t>& h_image_stack, const ocl_helpers::frac
     if(ocl_error_num != CL_SUCCESS)
         std::cout << "ERROR @ PROGRAM CREATION -- " << ocl_error_num << std::endl;
 
+    auto fracids = fractal_helpers::fractal_options::get_ids();
+    std::string fractal_id_list = "";
+    std::for_each(fracids.begin(), fracids.end(), [&fractal_id_list](const std::string& id)
+    {
+      fractal_id_list += ("-D" + fractal_helpers::fractal_options::get_ocl_id(id));
+    });
+
+    std::cout << "fractal ID list: " << fractal_id_list << std::endl;
     const std::string ocl_fractal_id = fractal_helpers::fractal_options::get_ocl_id(params.fractal_name);
-    const std::string cl_opts {"-D FRACTAL_ID=" + ocl_fractal_id};
+    const std::string cl_opts {"-DFRACTALID=" + std::to_string(1)};
     ocl_error_num = clBuildProgram(ocl_program, 0, 0, cl_opts.c_str(), nullptr, nullptr);
     if(ocl_error_num != CL_SUCCESS)
         std::cout << "ERROR @ PROGRAM BUILD -- " << ocl_error_num << std::endl;
@@ -192,6 +200,8 @@ void run_ocl_fractal(std::vector<data_t>& h_image_stack, const ocl_helpers::frac
         clGetProgramBuildInfo(ocl_program, device_id, CL_PROGRAM_BUILD_LOG, log_size, log, NULL);
         // Print the log
         printf("%s\n", log);
+
+        return;
     }
 
     // Create kernel instance
