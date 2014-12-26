@@ -1,6 +1,6 @@
 #include "fractals3d.hpp"
 //#include "fractals2d.hpp"
-#include "visualize/mesh_vis.h"
+//#include "visualize/vtk_vis/mesh_vis.h"
 #include "cpu_fractal.hpp"
 
 #include <vector>
@@ -86,7 +86,7 @@ int main(int argc, char* argv[])
 void cpu_fractal2d (const std::string& fractal_id)
 {
   using data_t = int;
-  ocl_helpers::fractal_params params;
+  fractal_params params;
   params.imheight = 128;
   params.imwidth = 128;
   params.imdepth = 128;
@@ -106,7 +106,7 @@ void cpu_fractal2d (const std::string& fractal_id)
 void ocl_fractal3d (const std::string& fractal_id)
 {
   using data_t = int;
-  ocl_helpers::fractal_params params;
+  fractal_params params;
   params.imheight = 128;
   params.imwidth = 128;
   params.imdepth = 128;
@@ -141,7 +141,7 @@ void ocl_fractal3d (const std::string& fractal_id)
 void ocl_fractal2d (const std::string& fractal_id)
 {
   using data_t = int;
-  ocl_helpers::fractal_params params;
+  fractal_params params;
   params.imheight = 128;
   params.imwidth = 128;
   params.imdepth = 128;

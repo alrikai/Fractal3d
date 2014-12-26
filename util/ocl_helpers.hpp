@@ -58,22 +58,6 @@ bool load_kernel_file(const std::string& file_name, std::string& kernel_source)
     return true;
 }
 
-struct fractal_params
-{
-  int imheight;
-  int imwidth;
-  int imdepth;
-
-  static constexpr int MAX_ITER = 80;
-  static constexpr int ORDER = 8;
-
-  cl_float MIN_LIMIT;
-  cl_float MAX_LIMIT;
-  cl_float BOUNDARY_VAL;
-
-  std::string fractal_name;
-};
-
 } //namespace ocl_helpers
 
 #endif

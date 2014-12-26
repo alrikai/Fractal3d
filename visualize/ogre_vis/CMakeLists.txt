@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 2.8)
 
-add_library(ogrevis SHARED ogre_vis.cpp)
+add_library(ogrevis SHARED ogre_vis.cpp ogre_util.cpp)
 
 if(EXISTS "/usr/local/lib/OGRE/cmake")
   set(CMAKE_MODULE_PATH "/usr/local/lib/OGRE/cmake/;${CMAKE_MODULE_PATH}")
@@ -29,12 +29,11 @@ include_directories(${OGRE_INCLUDE_DIRS})
 include_directories(${OGRE_SAMPLES_INCLUDEPATH})
 include_directories(${OGRE_Overlay_INCLUDE_DIRS})
 
-include_directories("/home/alrik/TowerDefense")
-set (controller_lib "/home/alrik/TowerDefense/build/lib/libController.so")
-add_executable(ogrevis ${HDRS} ${SRCS})
+add_subdirectory(controller)
+
 set_target_properties(ogrevis PROPERTIES DEBUG_POSTFIX _d)
 target_link_libraries(ogrevis 
-	${controller_lib}
+	Controller
 	${OpenCV_LIBS}
  	${PCL_COMMON_LIBRARIES}
 	${PCL_SURFACE_LIBRARIES}

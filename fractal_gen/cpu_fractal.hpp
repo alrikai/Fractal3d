@@ -3,7 +3,8 @@
 #include <opencv2/opencv.hpp>
 
 #include <tuple>
-#include "util/ocl_helpers.hpp"
+
+#include "util/fractal_helpers.hpp"
 
 namespace cpu_fractals
 {
@@ -80,7 +81,7 @@ std::tuple<bool, size_t> mandel_point(const PixelPoint<pixel_t> px_idx, const in
 }
 
 template <typename pixel_t>
-void run_cpu_fractal(std::vector<pixel_t>& h_image_stack, const ocl_helpers::fractal_params& params)
+void run_cpu_fractal(std::vector<pixel_t>& h_image_stack, const fractal_params& params)
 {
     FractalLimits<double> limits(PixelPoint<size_t>(params.imheight, params.imwidth, params.imdepth)); 
 

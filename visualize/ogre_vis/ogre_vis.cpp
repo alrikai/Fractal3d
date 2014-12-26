@@ -2,14 +2,13 @@
 #include <memory>
 #include <chrono>
 #include <string>
-
+#include <stdexcept>
 
 #include "ogre_util.hpp"
+#include "ogre_vis.hpp"
 
-#include "Controller/Controller.hpp"
-#include "Controller/ControllerUtil.hpp"
-#include "Fractal3D.hpp"
-
+#include "controller/Controller.hpp"
+#include "controller/ControllerUtil.hpp"
 
 namespace {
 
@@ -115,170 +114,139 @@ void make_maplines(Ogre::SceneManager* scene_mgmt, Ogre::Viewport* view_port, Og
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 }
 
-Ogre::SceneNode* make_pointcloud_object(Ogre::SceneManager* scene_mgmt, Ogre::Viewport* view_port, Ogre::SceneNode* map_node, 
-        const std::vector<float>& target_location, const std::string cloud_name)
-{
-    Ogre::ManualObject* minimal_obj = scene_mgmt->createManualObject(cloud_name);
-
-    const size_t MAX_ITER = 80;
-    const int imheight = 64;
-    const int imwidth = 64;
-    const int imdepth = 64;
-    const float pt_factor = 8.0f;
-    std::vector<std::vector<float>> fractal_pts = make_fractal<unsigned char, double, MAX_ITER>(imheight, imwidth, imdepth, 8, pt_factor);
-
-    std::vector<float> dim_avgs (3, 0);
-    std::for_each(fractal_pts.begin(), fractal_pts.end(), [&dim_avgs]
-            (const std::vector<float>& pt)
-            {
-                dim_avgs[0] += pt[0];
-                dim_avgs[1] += pt[1];
-                dim_avgs[2] += pt[2];
-            });
-    //get the average coordinate
-    dim_avgs[0] /= fractal_pts.size();
-    dim_avgs[1] /= fractal_pts.size();
-    dim_avgs[2] /= fractal_pts.size();
-
-    std::cout << "Fractal Centroid: [" << dim_avgs[0] << ", " << dim_avgs[1] << ", " << dim_avgs[2] << "]" << std::endl; 
-    
-    float color_coeff = 1.0f/MAX_ITER;
-    float alpha_coeff = 0.01f;    
-
-    //get the coordinates to place the tower at
-    const float height_offset = dim_avgs[0];
-    const float width_offset = dim_avgs[1];
-    const float depth_offset = dim_avgs[2];
-
-    std::cout << "Naive Centroid: [" << height_offset << ", " << width_offset << ", " << depth_offset << "]" << std::endl;
-
-    minimal_obj->begin("pointmaterial", Ogre::RenderOperation::OT_POINT_LIST);
-    {
-        for (auto pt : fractal_pts)
-        {    
-            minimal_obj->position(pt[0]- height_offset, pt[1] - width_offset, pt[2] - depth_offset);
-
-            //we have to have the points that converged be solid, and the rest be semi-transparent
-            if(pt[3] >= MAX_ITER-1)
-                minimal_obj->colour(Ogre::ColourValue(0.0f, 0.0f, 0.0f, 1.0f));
-            else
-                minimal_obj->colour(Ogre::ColourValue(0.0f, color_coeff * pt[3], 0.0f, alpha_coeff * pt[3]));
-        }
-    }
-    minimal_obj->end();
-    auto child_node = map_node->createChildSceneNode();
-    child_node->attachObject(minimal_obj);
-    child_node->setPosition(target_location[0], target_location[1], target_location[2]);
-
-    child_node->showBoundingBox(true);
-
-    return child_node;
-}
-
-Ogre::SceneNode* make_map(Ogre::SceneManager* scene_mgmt, const std::string& mesh_name)
-{
-    //create a prefab plane to use as the map
-    auto map_plane = scene_mgmt->createEntity(mesh_name, Ogre::SceneManager::PT_PLANE);
-    map_plane->setMaterialName("Examples/GrassFloor");
-    map_plane->setRenderQueueGroup(Ogre::RENDER_QUEUE_WORLD_GEOMETRY_1);
-    auto map_node = scene_mgmt->getRootSceneNode()->createChildSceneNode(mesh_name);
-    map_node->attachObject(map_plane);
-    return map_node;
-}
-
 
 } //anon namespace
 
-void start_display()
-{   
-    const std::string plugins_cfg_filename {"plugins.cfg"};
-    std::unique_ptr<Ogre::Root> root (new Ogre::Root(plugins_cfg_filename));   
+//draw the input fractal to the display
+void FractalOgre::display_fractal (fractal_data&& fractal)
+{
+  //put the fractal in the middle of the scene
+  const std::vector<float> target_coord {0.0f, 0.0f, 0.0f};
+  const std::string cloud_name = fractal_name + "_" + std::to_string(fractal_idx);
+  Ogre::ManualObject* fractal_obj = ogre_data.scene_mgmt->createManualObject(cloud_name);
 
+  const float pt_factor = 8.0f;
+
+  auto fractal_pts = fractal.point_cloud;
+  std::vector<float> dim_avgs (3, 0);
+  std::for_each(fractal_pts.begin(), fractal_pts.end(), [&dim_avgs]
+        (const std::vector<float>& pt)
+        {
+            dim_avgs[0] += pt[0];
+            dim_avgs[1] += pt[1];
+            dim_avgs[2] += pt[2];
+        });
+
+  //get the average coordinate
+  dim_avgs[0] /= fractal_pts.size();
+  dim_avgs[1] /= fractal_pts.size();
+  dim_avgs[2] /= fractal_pts.size();
+
+  std::cout << "Fractal Centroid: [" << dim_avgs[0] << ", " << dim_avgs[1] << ", " << dim_avgs[2] << "]" << std::endl; 
+    
+  float color_coeff = 1.0f / fractal.params.MAX_ITER;
+  float alpha_coeff = 0.01f;    
+
+  //get the coordinates to place the tower at
+  const float height_offset = dim_avgs[0];
+  const float width_offset = dim_avgs[1];
+  const float depth_offset = dim_avgs[2];
+
+  std::cout << "Naive Centroid: [" << height_offset << ", " << width_offset << ", " << depth_offset << "]" << std::endl;
+
+  fractal_obj->begin("pointmaterial", Ogre::RenderOperation::OT_POINT_LIST);
+  {
+      for (auto pt : fractal_pts)
+      {    
+          fractal_obj->position(pt[0]- height_offset, pt[1] - width_offset, pt[2] - depth_offset);
+
+          //we have to have the points that converged be solid, and the rest be semi-transparent
+          if(pt[3] >= fractal.params.MAX_ITER-1)
+              fractal_obj->colour(Ogre::ColourValue(0.0f, 0.0f, 0.0f, 1.0f));
+          else
+              fractal_obj->colour(Ogre::ColourValue(0.0f, color_coeff * pt[3], 0.0f, alpha_coeff * pt[3]));
+      }
+  }
+  fractal_obj->end();
+
+  //TODO: need to remove the old fractal's scenenode to cleanup -- look into how best to do this
+
+  auto new_fractal_node = ogre_data.map_node->createChildSceneNode();
+  new_fractal_node->attachObject(fractal_obj);
+  new_fractal_node->setPosition(target_coord[0], target_coord[1], target_coord[2]);
+
+  new_fractal_node->showBoundingBox(true);
+  fractal_idx++;
+
+  //out with the old, in with the new...
+  current_fractal_node = new_fractal_node;
+}
+
+void OgreData::make_map(const std::string& mesh_name)
+{
+	//create a prefab plane to use as the map
+	auto map_plane = scene_mgmt->createEntity(mesh_name, Ogre::SceneManager::PT_PLANE);
+	map_plane->setMaterialName("Examples/GrassFloor");
+	map_plane->setRenderQueueGroup(Ogre::RENDER_QUEUE_WORLD_GEOMETRY_1);
+	map_node = scene_mgmt->getRootSceneNode()->createChildSceneNode(mesh_name);
+	map_node->attachObject(map_plane);
+}
+
+void OgreData::setup_lights()
+{
+  main_light = scene_mgmt->createLight("MainLight");
+  main_light->setType(Ogre::Light::LightTypes::LT_DIRECTIONAL);
+  main_light->setDiffuseColour(Ogre::ColourValue(.25, .25, 0));
+  main_light->setSpecularColour(Ogre::ColourValue(.25, .25, 0));
+  main_light->setDirection(Ogre::Vector3(0,-1,1));
+
+  spot_light = scene_mgmt->createLight("OtherLight");
+  spot_light->setPosition(20.0f, 80.0f, 50.0f); 
+
+  Ogre::Light* spotLight = scene_mgmt->createLight("spotLight");
+  spotLight->setType(Ogre::Light::LT_SPOTLIGHT);
+  spotLight->setDiffuseColour(0, 0, 1.0);
+  spotLight->setSpecularColour(0, 0, 1.0);
+  spotLight->setDirection(-1, -1, 0);
+  spotLight->setPosition(Ogre::Vector3(0, 0, 300));
+  spotLight->setSpotlightRange(Ogre::Degree(35), Ogre::Degree(50));
+}
+
+void OgreData::setup_camera()
+{
+    camera = scene_mgmt->createCamera("MinimalCamera");
+    camera->setNearClipDistance(5);
+    camera->setFarClipDistance(6000);
+    //have a 4:3 aspect ratio, looking back along the Z-axis (should we do Y-axis instead?) 
+    camera->setAspectRatio(Ogre::Real(4.0f/3.0f));
+    camera->setPosition(Ogre::Vector3(0,0,300)); 
+    camera->lookAt(Ogre::Vector3(0,0,0));
+}
+
+void OgreData::ogre_setup()
+{
     //load resources
-    const std::string resource_cfg_filename {"resources.cfg"};
-    load_resources(resource_cfg_filename);
+	ogre_util::load_resources(resource_cfg_filename);
     
     //configure the system
     if(!root->restoreConfig())
         if(!root->showConfigDialog())
-            return -1;
+            throw std::runtime_error("Could not configure Ogre system");
 
-    Ogre::RenderWindow* render_window = root->initialise(true, "Minimal OGRE");
-    Ogre::SceneManager* scene_mgmt = root->createSceneManager("OctreeSceneManager");
-    //Ogre::SceneNode* root_node = scene_mgmt->getRootSceneNode();
-
-    Ogre::Camera* camera = scene_mgmt->createCamera("MinimalCamera");
-    camera->setNearClipDistance(3);
-    camera->setFarClipDistance(8000);
-    //have a 4:3 aspect ratio
-    camera->setAspectRatio(Ogre::Real(4.0f/3.0f));
-    camera->setPosition(Ogre::Vector3(0,0,300)); 
-    camera->lookAt(Ogre::Vector3(0,0,0));
-
-    Ogre::Viewport* view_port = render_window->addViewport(camera);
-    view_port->setBackgroundColour(Ogre::ColourValue(0, 0, 0));
-    Ogre::ResourceGroupManager::getSingleton().initialiseAllResourceGroups();
-
-    Ogre::Light* light = scene_mgmt->createLight("MainLight");
-    light->setPosition(20.0f, 80.0f, 50.0f);
-    scene_mgmt->setAmbientLight(Ogre::ColourValue(0.2, 0.2, 0.2));
-
-    const std::string mesh_name {"GameMap"};
-    Ogre::SceneNode* map_node = make_map(scene_mgmt, mesh_name);
-    
-    //create the skybox. Current skybox is pretty nonsensical, but I guess it's something?
-    const std::string skybox_material {"Examples/SpaceSkyBox"};
-    scene_mgmt->setSkyBox(true, skybox_material, 5000);
-    view_port->setSkiesEnabled(true);
-
-    ////////////////////////////////////////////////////////////////////////
-    //feeble attempts at terrain 
-    ////////////////////////////////////////////////////////////////////////
-    //NOTE: should only do 1 of these per application
-    //auto terrain_globalparams = new Ogre::TerrainGlobalOptions();
-    //auto terrain_group = new Ogre::TerrainGroup(scene_mgmt, Ogre::Terrain::ALIGN_X_Y, 513, 12000.0f);
- 
-    HandleUserInput input_handler (root.get(), render_window, map_node);
-
-    std::unique_ptr<MinimalWindowEventListener> window_event_listener(new MinimalWindowEventListener());
-    Ogre::WindowEventUtilities::addWindowEventListener(render_window, window_event_listener.get());
-    
-    //@TODO: want to place these correctly on the game map, s.t. they'll always match correctly. 
-    //eventually we'll have the GameMap class, which will subdivide the map region into tiles,
-    //and when creating towers, the user clicks will be binned into these tiles, so that the tower
-    //is snapped to have its origin in the center of the tile. 
-    make_maplines(scene_mgmt, view_port, map_node);
-
-    //try drawing something via point-cloud
-    const std::string fractal_name {"minimal_fractal"};
-    const std::vector<float> target_coord {0, 0, 0};
-    auto fractal_node = make_pointcloud_object(scene_mgmt, view_port, map_node, target_coord, fractal_name);
-
-    double time_elapsed = 0;   
-    const double TOTAL_TIME = 60 * 1000;
-    auto start_time = std::chrono::high_resolution_clock::now();
-    do
-    {
-        root->renderOneFrame();
-        Ogre::WindowEventUtilities::messagePump();
-      
-        //how best to do this? check the input queues for messages? In this thread, or in another one?
-        input_handler(scene_mgmt, view_port);            
-
-        //////////////////////////////////////////////////////
-        //for fun: try rotating a fractal
-        fractal_node->yaw(Ogre::Radian(3.14159265/5000.0f));
-        //////////////////////////////////////////////////////
-
-        auto end_time = std::chrono::high_resolution_clock::now(); 
-        std::chrono::duration<double, std::milli> time_duration (end_time - start_time);
-        time_elapsed = time_duration.count();
-    } while(time_elapsed < TOTAL_TIME && !window_event_listener->close_display.load());
-
-
-    Ogre::WindowEventUtilities::removeWindowEventListener(render_window, window_event_listener.get());        
-    return 0;
+    render_window = root->initialise(true, "Fractal OGRE");
+    scene_mgmt = root->createSceneManager("OctreeSceneManager");
+    root_node = scene_mgmt->getRootSceneNode();
 }
 
+void OgreData::start_display(const std::string& map_materialname, const std::string& skybox_material)
+{
+	make_map(map_materialname);
+	scene_mgmt->setSkyBox(true, skybox_material, 5000);
+	view_port->setSkiesEnabled(true);	
+}
+
+const std::string FractalOgre::resource_cfg_filename {"resources.cfg"}; 
+const std::string FractalOgre::plugins_cfg_filename {"plugins.cfg"}; 
+const std::string FractalOgre::fractal_name {"minimal_fractal"};
 
 

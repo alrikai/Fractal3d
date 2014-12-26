@@ -1,12 +1,13 @@
 #ifndef OGRE_VIS_OGRE_UTIL_HPP
 #define OGRE_VIS_OGRE_UTIL_HPP
 
-#include <Ogre.h>
 #include <atomic>
 #include <string>
 #include <tuple>
 #include <memory>
 
+#include <OGRE/Ogre.h>
+#include "controller/Controller.hpp"
 
 namespace ogre_util
 {
@@ -59,11 +60,11 @@ struct HandleUserInput
             {
             case ControllerUtil::INPUT_TYPE::LClick:
                 std::cout << "Mouse Lclick @[" << ui_evt.x_pos/width<< ", " << ui_evt.y_pos/height << "]" << std::endl;
-                check_point(scene_mgmt, view_port, ui_evt.x_pos/width, ui_evt.y_pos/height);
+								ogre_util::check_point(scene_mgmt, view_port, ui_evt.x_pos/width, ui_evt.y_pos/height);
             break;
             case ControllerUtil::INPUT_TYPE::RClick:
                 std::cout << "Mouse Rclick @[" << ui_evt.x_pos/width << ", " << ui_evt.y_pos/height << "]" << std::endl;
-                std::tie(valid_click, click_distance) = check_point(scene_mgmt, view_port, ui_evt.x_pos/width, ui_evt.y_pos/height);
+                std::tie(valid_click, click_distance) = ogre_util::check_point(scene_mgmt, view_port, ui_evt.x_pos/width, ui_evt.y_pos/height);
 
                 if(valid_click)
                     place_fractal(scene_mgmt, view_port, ui_evt.x_pos/width, ui_evt.y_pos/height, click_distance);
@@ -101,7 +102,7 @@ struct HandleUserInput
         const std::string fractal_name {"rclickminimal_fractal_" + std::to_string(fractal_count)};
         //what to do about the Z-coord? We would want to have it be the map-plane's z-val
         const std::vector<float> target_coord {world_click[0], world_click[1], 0};
-        make_pointcloud_object(scene_mgmt, view_port, map_node, target_coord, fractal_name);
+        //make_pointcloud_object(scene_mgmt, view_port, map_node, target_coord, fractal_name);
         ++fractal_count;
     }
 

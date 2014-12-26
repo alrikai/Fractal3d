@@ -6,4 +6,4 @@ add_definitions(${PCL_DEFINITIONS})
 link_directories(${PCL_LIBRARY_DIRS})
 
 add_subdirectory(ogre_vis)
-add_subdirectory(vtk_vis)
+#add_subdirectory(vtk_vis)

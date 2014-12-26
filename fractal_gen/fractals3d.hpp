@@ -52,7 +52,7 @@ struct fractal_options
 } //namespace fractal_helpers
 
 template <typename data_t, template <class> class ptcloud_t, typename pt_t>
-void make_pointcloud(const std::vector<data_t>& h_image_stack, const ocl_helpers::fractal_params& params, ptcloud_t<pt_t>& pt_cloud)
+void make_pointcloud(const std::vector<data_t>& h_image_stack, const fractal_params& params, ptcloud_t<pt_t>& pt_cloud)
 {
   auto start = std::chrono::high_resolution_clock::now();
   
@@ -134,7 +134,7 @@ void make_pointcloud(const std::vector<data_t>& h_image_stack, const ocl_helpers
 }
 
 template <typename data_t>
-void run_ocl_fractal(std::vector<data_t>& h_image_stack, const ocl_helpers::fractal_params& params)
+void run_ocl_fractal(std::vector<data_t>& h_image_stack, const fractal_params& params)
 {
     std::string target_platform_id {"NVIDIA"};
     //get ONE GPU device on the target platform 
