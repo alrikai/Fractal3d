@@ -76,7 +76,7 @@ void make_pointcloud(const std::vector<data_t>& h_image_stack, const fractal_par
           for (int j = 0; j < params.imwidth; ++j)
           {
               auto fractal_itval = h_image_slice[i*params.imwidth+j];
-              //if(fractal_itval == params.MAX_ITER-1)
+              if(fractal_itval == params.MAX_ITER-1)
                   pt_cloud.emplace_back(j,i,k,fractal_itval);
 
               if(run_comparison)

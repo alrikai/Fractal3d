@@ -105,7 +105,7 @@ public:
 private:
   void display_loop()
   {
-		HandleUserInput input_handler (ogre_data.root.get(), ogre_data.render_window, ogre_data.map_node);
+		HandleUserInput input_handler (ogre_data.root.get(), ogre_data.render_window, ogre_data.map_node, ogre_data.cam_move, ogre_data.cam_rotate);
     std::unique_ptr<MinimalWindowEventListener> window_event_listener(new MinimalWindowEventListener());
     Ogre::WindowEventUtilities::addWindowEventListener(ogre_data.render_window, window_event_listener.get());
 
@@ -165,7 +165,7 @@ void FractalOgre::display_fractal (fractal_data<point_t> fractal)
 {
   //put the fractal in the middle of the scene
   const std::vector<float> target_coord {0.0f, 0.0f, 0.0f};
-  const float pt_factor = 8.0f;
+  const float pt_factor = 2.0f;
 
   auto fractal_pts = fractal.point_cloud.cloud;
   std::vector<float> dim_avgs (3, 0);
@@ -224,6 +224,9 @@ void FractalOgre::display_fractal (fractal_data<point_t> fractal)
   auto new_fractal_node = ogre_data.map_node->createChildSceneNode();
   new_fractal_node->attachObject(fractal_obj);
   new_fractal_node->setPosition(target_coord[0], target_coord[1], target_coord[2]);
+
+  new_fractal_node->scale(1.0f/pt_factor, 1.0f/pt_factor, 1.0f/pt_factor);
+  
 
   new_fractal_node->showBoundingBox(true);
   fractal_idx++;
