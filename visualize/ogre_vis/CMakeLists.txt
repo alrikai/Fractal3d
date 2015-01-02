@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 2.8)
 
-add_library(ogrevis SHARED ogre_vis.cpp ogre_util.cpp)
+add_library(ogrevis ogre_vis.cpp ogre_util.cpp)
 
 if(EXISTS "/usr/local/lib/OGRE/cmake")
   set(CMAKE_MODULE_PATH "/usr/local/lib/OGRE/cmake/;${CMAKE_MODULE_PATH}")

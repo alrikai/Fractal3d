@@ -51,8 +51,8 @@ struct fractal_options
 
 } //namespace fractal_helpers
 
-template <typename data_t, template <class> class ptcloud_t, typename pt_t>
-void make_pointcloud(const std::vector<data_t>& h_image_stack, const fractal_params& params, ptcloud_t<pt_t>& pt_cloud)
+template <template <class, class> class ptcloud_t, typename pt_t, typename data_t>
+void make_pointcloud(const std::vector<data_t>& h_image_stack, const fractal_params& params, ptcloud_t<pt_t, data_t>& pt_cloud)
 {
   auto start = std::chrono::high_resolution_clock::now();
   
@@ -76,8 +76,8 @@ void make_pointcloud(const std::vector<data_t>& h_image_stack, const fractal_par
           for (int j = 0; j < params.imwidth; ++j)
           {
               auto fractal_itval = h_image_slice[i*params.imwidth+j];
-              if(fractal_itval == params.MAX_ITER-1)
-                  pt_cloud.push_back(pt_t(j,i,k));
+              //if(fractal_itval == params.MAX_ITER-1)
+                  pt_cloud.emplace_back(j,i,k,fractal_itval);
 
               if(run_comparison)
               {

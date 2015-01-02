@@ -4,6 +4,54 @@
 #include <string>
 #include <vector>
 
+namespace fractal_types
+{
+struct point_type
+{
+  point_type()
+    : x(0), y(0), z(0)
+  {}
+
+  point_type(int x_coord, int y_coord, int z_coord)
+    : x(x_coord), y(y_coord), z(z_coord)
+  {}
+
+  int x, y, z;
+};
+
+template <typename point_t, typename data_t>
+struct fractal_point : public point_t
+{
+  fractal_point()
+    : point_t(), value(0)
+  {}
+
+  fractal_point(int x_coord, int y_coord, int z_coord, data_t val)
+    : point_type(x_coord, y_coord, z_coord), value(val)
+  {}
+  
+  data_t value;
+};
+
+template <typename point_t, typename data_t = int32_t>
+struct pointcloud
+{
+	typedef fractal_point<point_t, data_t> cloud_point_t;
+  void push_back(fractal_point<point_t, data_t> pt)
+  {
+    cloud.push_back(pt);
+  }
+
+	template <typename ... Args>
+	void emplace_back(Args&& ... args)
+	{
+    cloud.emplace_back(std::forward<Args>(args)...);
+	}
+
+  std::vector<fractal_point<point_t, data_t>> cloud; 
+};
+} //namespace fractal_types
+
 struct fractal_params
 {
   int imheight;
@@ -34,9 +82,10 @@ struct fractal_genevent
 };
 
 //holds the generated fractal data
+template <typename point_t, typename data_t = int32_t>
 struct fractal_data
 {
-  std::vector<std::vector<float>> point_cloud;
+  fractal_types::pointcloud<point_t, data_t> point_cloud;
 	fractal_params params;
 };
 

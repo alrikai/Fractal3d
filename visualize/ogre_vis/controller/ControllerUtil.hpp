@@ -104,7 +104,8 @@ namespace ControllerUtil
             break;
             case INPUT_TYPE::MDrag:
                 std::cout << "Mouse drag" << std::endl;
-            break;            default:
+            break;            
+            default:
                 std::cout << "Unknown Type" << std::endl;
         };
     }
