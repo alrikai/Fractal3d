@@ -51,13 +51,11 @@ struct fractal_options
 
 } //namespace fractal_helpers
 
-template <template <class, class> class ptcloud_t, typename pt_t, typename data_t>
+template <template <class, class> class ptcloud_t, typename pt_t, typename data_t, int debug_run=0>
 void make_pointcloud(const std::vector<data_t>& h_image_stack, const fractal_params& params, ptcloud_t<pt_t, data_t>& pt_cloud)
 {
   auto start = std::chrono::high_resolution_clock::now();
   
-  //for the cpu version
-  bool run_comparison = false;
   cpu_fractals::FractalLimits<data_t> limits(cpu_fractals::PixelPoint<size_t>(params.imheight, params.imwidth, params.imdepth));
 
   for (int k = 0; k < params.imdepth; ++k)
@@ -79,7 +77,7 @@ void make_pointcloud(const std::vector<data_t>& h_image_stack, const fractal_par
               if(fractal_itval == params.MAX_ITER-1)
                   pt_cloud.emplace_back(j,i,k,fractal_itval);
 
-              if(run_comparison)
+              if(debug_run)
               {
                 auto x_point = limits.offset_X(j);
                 bool is_valid;
@@ -96,36 +94,34 @@ void make_pointcloud(const std::vector<data_t>& h_image_stack, const fractal_par
           }
       }
 
-      /*
-      std::string slice_name {"ocl_slice"};
-      cv::imshow(slice_name, ocl_slice);
-      cv::waitKey(33);
-      */
-
-      auto px_sum = cv::sum(cv::sum(ocl_slice)) / 255;
-      std::cout << "Image " << k << " Generated... has " << ((px_sum[0] > 0) ? std::to_string(px_sum[0]):"NO") << " non-zero elements" << std::endl;
-
-      if(run_comparison)
+     
+      if(debug_run)
       {
-      auto diff_extrema = std::minmax_element(slice_diff.begin(), slice_diff.end());
-      auto min_diff = *diff_extrema.first;
-      auto max_diff = *diff_extrema.second;
-      if(max_diff > 1 || min_diff < -1)
-          std::cout << "Slice " << k << " differed" << std::endl;
+        auto px_sum = cv::sum(cv::sum(ocl_slice)) / 255;
+        std::cout << "Image " << k << " Generated... has " << ((px_sum[0] > 0) ? std::to_string(px_sum[0]):"NO") << " non-zero elements" << std::endl;
+      }
 
-      std::string slice_diff_name = "slice_diff_" + std::to_string(k);
-      cv::imwrite((slice_diff_name + ".png"), cv::abs(slice_diff));
-      cv::FileStorage slice_storage((slice_diff_name + ".yml"), cv::FileStorage::WRITE);
-      slice_storage << slice_diff_name << slice_diff;
-      slice_storage << "ocl slice" << ocl_slice;
-      slice_storage << "cpu slice" << cpu_slice;
-      slice_storage.release();  
-      std::string cpu_slice_name = "cpu_slice_" + std::to_string(k) + ".png";
-      cv::imwrite(cpu_slice_name, cpu_slice);
+      if(debug_run)
+      {
+        auto diff_extrema = std::minmax_element(slice_diff.begin(), slice_diff.end());
+        auto min_diff = *diff_extrema.first;
+        auto max_diff = *diff_extrema.second;
+        if(max_diff > 1 || min_diff < -1)
+            std::cout << "Slice " << k << " differed" << std::endl;
+
+        std::string slice_diff_name = "slice_diff_" + std::to_string(k);
+        cv::imwrite((slice_diff_name + ".png"), cv::abs(slice_diff));
+        cv::FileStorage slice_storage((slice_diff_name + ".yml"), cv::FileStorage::WRITE);
+        slice_storage << slice_diff_name << slice_diff;
+        slice_storage << "ocl slice" << ocl_slice;
+        slice_storage << "cpu slice" << cpu_slice;
+        slice_storage.release();  
+        std::string cpu_slice_name = "cpu_slice_" + std::to_string(k) + ".png";
+        cv::imwrite(cpu_slice_name, cpu_slice);
+
+        std::string ocl_slice_name = params.fractal_name + "_ocl_slice_" + std::to_string(k) + ".png";
+        cv::imwrite(ocl_slice_name, ocl_slice);
       }        
-
-      std::string ocl_slice_name = params.fractal_name + "_ocl_slice_" + std::to_string(k) + ".png";
-      cv::imwrite(ocl_slice_name, ocl_slice);
   }
 
   auto end = std::chrono::high_resolution_clock::now();
@@ -136,6 +132,7 @@ void make_pointcloud(const std::vector<data_t>& h_image_stack, const fractal_par
 template <typename data_t>
 void run_ocl_fractal(std::vector<data_t>& h_image_stack, const fractal_params& params)
 {
+  bool verbose_run = false;
     std::string target_platform_id {"NVIDIA"};
     //get ONE GPU device on the target platform 
     const int num_gpu = 1;
@@ -241,8 +238,11 @@ void run_ocl_fractal(std::vector<data_t>& h_image_stack, const fractal_params& p
         if(ocl_error_num != CL_SUCCESS)
             std::cout << "ERROR @ DATA RETRIEVE -- " << ocl_error_num << std::endl;
 
-        auto slice_sum = std::accumulate(&h_image_stack[h_image_stack_offset], &h_image_stack[h_image_stack_offset] + params.imheight * params.imwidth, 0);
-        std::cout << "slice " << depth_idx << " sum: " << slice_sum << std::endl;
+        if(verbose_run)
+        {
+          auto slice_sum = std::accumulate(&h_image_stack[h_image_stack_offset], &h_image_stack[h_image_stack_offset] + params.imheight * params.imwidth, 0);
+          std::cout << "slice " << depth_idx << " sum: " << slice_sum << std::endl;
+        }
     }
 
     auto end = std::chrono::high_resolution_clock::now();

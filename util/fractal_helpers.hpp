@@ -74,11 +74,12 @@ struct fractal_genevent
   fractal_genevent()
   {}
 
-  fractal_genevent(fractal_params fparams)
-    : params(fparams)
+  fractal_genevent(fractal_params fparams, float x, float y, float z)
+    : params(fparams), target_coord{x, y, z}
   {}
 
   fractal_params params;
+  std::vector<float> target_coord;
 };
 
 //holds the generated fractal data
@@ -87,6 +88,8 @@ struct fractal_data
 {
   fractal_types::pointcloud<point_t, data_t> point_cloud;
 	fractal_params params;
+
+  std::vector<float> target_coord;
 };
 
 #endif

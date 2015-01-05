@@ -15,8 +15,8 @@ int main()
 
   auto fractal_generator = new fractal_backend_t ();
 
-	const float rotate_magnitude = 0.10f;
-	const float pan_magnitude = 1.0f;
+	const float rotate_magnitude = 0.20f;
+	const float pan_magnitude = 10.0f;
 	auto fractal_viewer = new fractal_frontend_t (rotate_magnitude, pan_magnitude);
   fractal_t fractal_maker (fractal_generator, fractal_viewer);
 

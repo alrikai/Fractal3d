@@ -215,12 +215,10 @@ struct HandleUserInput
 //cam->getDerivedPosition().z
         //ray.setDirection(Ogre::Vector3::NEGATIVE_UNIT_Z);
         auto world_click = ray.getPoint(click_distance);
-        
-        const std::string fractal_name {"rclickminimal_fractal_" + std::to_string(fractal_count)};
-        //what to do about the Z-coord? We would want to have it be the map-plane's z-val
-        const std::vector<float> target_coord {world_click[0], world_click[1], 0};
+        //const std::string fractal_name {"rclickminimal_fractal_" + std::to_string(fractal_count)};
         
         //TODO: we'll want some sort of GUI for selecting parameters, etc.
+        
         fractal_params params;
         params.imheight  = 128;
         params.imwidth   = 129;
@@ -230,8 +228,10 @@ struct HandleUserInput
         params.BOUNDARY_VAL = 2.0f;
         params.fractal_name = "mandelbrot";
 
+        //what to do about the Z-coord? We would want to have it be the map-plane's z-val
+        fractal_genevent fractal_gevt (params, world_click[0], world_click[1], 0);
         ++fractal_count;
-        return params;
+        return fractal_gevt;
     }
 
     Controller controller;

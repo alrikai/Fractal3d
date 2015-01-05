@@ -66,6 +66,9 @@ private:
         //TODO: see what else could be needed here.... (e.g. pre-process anything, get the parameters into a different form, etc)
         auto fractalgen_parameters = fgen_evt.params;
         auto generated_fractal = fractal_backend->make_fractal(std::move(fractalgen_parameters));
+        
+        //carry along the target coordinate information
+        generated_fractal.target_coord = fgen_evt.target_coord;
         fractal_displaybuffer->push(generated_fractal);
       }
     }

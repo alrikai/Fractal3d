@@ -10,115 +10,52 @@
 #include "controller/Controller.hpp"
 #include "controller/ControllerUtil.hpp"
 
-namespace {
 
-void make_maplines(Ogre::SceneManager* scene_mgmt, Ogre::Viewport* view_port, Ogre::SceneNode* map_node)
+void FractalOgre::display_loop()
 {
-    const int height = view_port->getActualHeight(); 
-    const int width = view_port->getActualWidth(); 
-    std::cout << "Viewport Dimensions: " << height << " x " << width << std::endl;
-    std::cout << "Viewport Real Dims: " << view_port->getHeight() << " x " << view_port->getWidth() << std::endl;
+  HandleUserInput input_handler (ogre_data.root.get(), ogre_data.render_window, ogre_data.map_node, ogre_data.cam_move, ogre_data.cam_rotate);
+  std::unique_ptr<MinimalWindowEventListener> window_event_listener(new MinimalWindowEventListener());
+  Ogre::WindowEventUtilities::addWindowEventListener(ogre_data.render_window, window_event_listener.get());
 
-    const int mapheight = 0.75 * height;
-    const int mapwidth = 0.75 * width;
-    const float dim_ratio = mapwidth / static_cast<float>(mapheight);
-    std::cout << "Map Dimensions: " << mapheight << " x " << mapwidth << std::endl;
-
-
-//////////////////////////////////////////////////////////////////////////////////////
-//need to look at the camera and the viewport to see where things should be placed
+  double time_elapsed = 0;   
+  const double TOTAL_TIME = 60 * 1000;
+  auto start_time = std::chrono::high_resolution_clock::now();
+  do
+  {
+      ogre_data.root->renderOneFrame();
+      Ogre::WindowEventUtilities::messagePump();
     
-    auto cam = view_port->getCamera();
+      //handle any user inputs
+      input_handler(ogre_data.scene_mgmt, ogre_data.view_port, fractal_evtbuffer);            
 
-    //corners are ordered as follows: top-right near, top-left near, bottom-left near, bottom-right near, top-right far, top-left far, bottom-left far, bottom-right far
-    auto cam_world_coords = cam->getWorldSpaceCorners();
-    std::cout << "cam. world coords: top-right near, top-left near, bottom-left near, bottom-right near, top-right far, top-left far, bottom-left far, bottom-right far" << std::endl;
-    for (int i = 0; i < 8; ++i)
-        std::cout << *(cam_world_coords+i) << std::endl;
+//---------------------------------------------------------------------------------------        
 
-    auto target = view_port->getTarget();
-    std::cout << "target dimensions: " << target->getHeight() << " x " << target->getWidth() << std::endl;
+      //check for new rendering events
+      fractal_data<fractal_types::point_type> fdata_evt;
+      while(fractal_displayevtbuffer->pop(fdata_evt))
+      {
+        display_fractal(fdata_evt);
+      }
+     
+//---------------------------------------------------------------------------------------        
 
-//////////////////////////////////////////////////////////////////////////////////////
+      //////////////////////////////////////////////////////
+      //for fun: try rotating a fractal
+      if(current_fractal_node)
+        current_fractal_node->yaw(Ogre::Radian(3.14159265/5000.0f));
+      //////////////////////////////////////////////////////
 
-    const float tileheight = 50.0f;
-    const float tilewidth = 50.0f;
+      auto end_time = std::chrono::high_resolution_clock::now(); 
+      std::chrono::duration<double, std::milli> time_duration (end_time - start_time);
+      time_elapsed = time_duration.count();
+  } while(time_elapsed < TOTAL_TIME && !window_event_listener->close_display.load());
 
-    const int num_rowtiles = mapheight / tileheight;
-    const int num_coltiles = mapwidth / tilewidth;
-    const std::string mapgrid_material {"BaseWhiteNoLighting"};
-
-    //TODO: figure out how we arrive at these numbers (sans trial and error...)
-    //since they still follow the screen dimensions properly, how do we arrive 
-    //at these #s? the width of the map is apparently 67 of these units (i.e. 
-    //[-33, 33]). The pixel-width of the map is 600. 
-    //Is it something with the viewport or camera position?
-    const float col_offset = 33;
-    const float col_step = std::abs(2*col_offset) / num_coltiles;
-    const float row_offset = -col_offset / dim_ratio;
-    const float row_step = std::abs(2*row_offset) / num_rowtiles;
-
-    //first, draw a single line
-    std::vector<Ogre::ManualObject*> map_grid_rowlines (num_rowtiles+1);
-    std::vector<Ogre::SceneNode*> row_line_nodes (num_rowtiles+1);
-    for (int row = 0; row < num_rowtiles+1; ++row)
-    {
-        const std::string row_line_name = "mapline_row_" + std::to_string(row);
-        map_grid_rowlines.at(row) = scene_mgmt->createManualObject(row_line_name);
-        map_grid_rowlines.at(row)->begin(mapgrid_material, Ogre::RenderOperation::OT_LINE_LIST); 
-        {
-            //make the start and end points for the row lines
-            map_grid_rowlines.at(row)->position(-col_offset, row_offset + row * row_step, 0);
-            map_grid_rowlines.at(row)->position( col_offset, row_offset + row * row_step, 0);   
-        }
-        map_grid_rowlines.at(row)->end();
-        map_grid_rowlines.at(row)->setRenderQueueGroup(Ogre::RENDER_QUEUE_1);     
-   
-        row_line_nodes.at(row) = map_node->createChildSceneNode();
-        row_line_nodes.at(row)->attachObject(map_grid_rowlines.at(row));
-    }
-
-    std::vector<Ogre::ManualObject*> map_grid_collines (num_coltiles+1);
-    std::vector<Ogre::SceneNode*> col_line_nodes (num_coltiles+1);
-    
-    for (int col = 0; col < num_coltiles+1; ++col)
-    {
-        const std::string col_line_name = "mapline_col_" + std::to_string(col);
-        map_grid_collines.at(col) = scene_mgmt->createManualObject(col_line_name);
-        map_grid_collines.at(col)->begin(mapgrid_material, Ogre::RenderOperation::OT_LINE_LIST); 
-        {
-            //make the start and end points for the col lines
-            map_grid_collines.at(col)->position(-col_offset + col * col_step, -row_offset, 0);
-            map_grid_collines.at(col)->position(-col_offset + col * col_step,  row_offset, 0);   
-        }
-        map_grid_collines.at(col)->end();
-        map_grid_collines.at(col)->setRenderQueueGroup(Ogre::RENDER_QUEUE_1);     
-
-        col_line_nodes.at(col) = map_node->createChildSceneNode();
-        col_line_nodes.at(col)->attachObject(map_grid_collines.at(col));
-    }
-
-    /* Have a list of unresolved questions to address:
-     * 
-     * 1. do we use normalized coordinates? Or can we do it based on pixel values?
-     * 2. how do we place an object in the scene? Do we use global positioning until we attach it to a scene node?
-     */
-
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    Ogre::Vector3 position {33, 33/dim_ratio, 0};
-    auto proj_pos = cam->getProjectionMatrix() * (cam->getViewMatrix() * position);
-    Ogre::Vector2 screen_pos = Ogre::Vector2::ZERO;
-    screen_pos.x = (proj_pos.x / 2.f) + 0.5f;
-    screen_pos.y = (proj_pos.y / 2.f) + 0.5f;
-    std::cout << "WORLD: [" << position[0] << ", " << position[1] << ", " << position[2] << "] --> SCREEN: [" << screen_pos.x << ", " << screen_pos.y << "]" << std::endl;
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  Ogre::WindowEventUtilities::removeWindowEventListener(ogre_data.render_window, window_event_listener.get());        
 }
 
+//---------------------------------------------------------------------------------------        
 
-} //anon namespace
-
-
-void OgreData::make_map(const std::string& mesh_name)
+void FractalOgre::OgreData::make_map(const std::string& mesh_name)
 {
 	//create a prefab plane to use as the map
 	auto map_plane = scene_mgmt->createEntity(mesh_name, Ogre::SceneManager::PT_PLANE);
@@ -128,7 +65,7 @@ void OgreData::make_map(const std::string& mesh_name)
 	map_node->attachObject(map_plane);
 }
 
-void OgreData::setup_lights()
+void FractalOgre::OgreData::setup_lights()
 {
   main_light = scene_mgmt->createLight("MainLight");
   main_light->setType(Ogre::Light::LightTypes::LT_DIRECTIONAL);
@@ -148,7 +85,7 @@ void OgreData::setup_lights()
   spotLight->setSpotlightRange(Ogre::Degree(35), Ogre::Degree(50));
 }
 
-void OgreData::setup_camera()
+void FractalOgre::OgreData::setup_camera()
 {
     camera = scene_mgmt->createCamera("MinimalCamera");
     camera->setNearClipDistance(5);
@@ -159,10 +96,10 @@ void OgreData::setup_camera()
     camera->lookAt(Ogre::Vector3(0,0,0));
 }
 
-void OgreData::ogre_setup()
+void FractalOgre::OgreData::ogre_setup()
 {
     //load resources
-	ogre_util::load_resources(resource_cfg_filename);
+  	ogre_util::load_resources(resource_cfg_filename);
     
     //configure the system
     if(!root->restoreConfig())
@@ -174,7 +111,7 @@ void OgreData::ogre_setup()
     root_node = scene_mgmt->getRootSceneNode();
 }
 
-void OgreData::start_display(const std::string& map_materialname, const std::string& skybox_material)
+void FractalOgre::OgreData::start_display(const std::string& map_materialname, const std::string& skybox_material)
 {
 	make_map(map_materialname);
 	scene_mgmt->setSkyBox(true, skybox_material, 5000);
