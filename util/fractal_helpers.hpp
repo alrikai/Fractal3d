@@ -58,7 +58,7 @@ struct fractal_params
   int imwidth;
   int imdepth;
 
-  static constexpr int MAX_ITER = 80;
+  static constexpr size_t MAX_ITER = 80;
   static constexpr int ORDER = 8;
 
   float MIN_LIMIT;
@@ -83,7 +83,7 @@ struct fractal_genevent
 };
 
 //holds the generated fractal data
-template <typename point_t, typename data_t = int32_t>
+template <typename point_t, typename data_t>
 struct fractal_data
 {
   fractal_types::pointcloud<point_t, data_t> point_cloud;

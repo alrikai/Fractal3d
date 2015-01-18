@@ -9,12 +9,12 @@ class oclFractals
 {
 public:
   using point_t = fractal_types::point_type;
-  using data_t = int32_t;
+  using data_t = float;
 
   oclFractals()
   {}
 
-  fractal_data<point_t> make_fractal(fractal_params&& fractalgen_params)
+  fractal_data<point_t, data_t> make_fractal(fractal_params&& fractalgen_params)
   {
     //NOTE: need to dynamically allocate, as the memory requirements become prohibitive very fast (e.g. 512 x 512 x 512 of ints --> 4*2^27 bytes)
     std::vector<data_t> h_image_stack (fractalgen_params.imheight * fractalgen_params.imwidth * fractalgen_params.imdepth);
@@ -25,7 +25,7 @@ public:
 
   //-------------------------------------------------------
 
-    fractal_data<point_t> fdata;
+    fractal_data<point_t, data_t> fdata;
 //-----------------------------------------------------------------------------------------------------------------------    
     make_pointcloud<fractal_types::pointcloud, point_t, data_t> (h_image_stack, fractalgen_params, fdata.point_cloud);
 //-----------------------------------------------------------------------------------------------------------------------    

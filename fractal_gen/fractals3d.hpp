@@ -82,8 +82,8 @@ void make_pointcloud(const std::vector<data_t>& h_image_stack, const fractal_par
                 auto x_point = limits.offset_X(j);
                 bool is_valid;
                 size_t iter_num;
-                std::tie(is_valid, iter_num) = cpu_fractals::mandel_point<data_t,params.MAX_ITER>
-                    (cpu_fractals::PixelPoint<data_t>(y_point,x_point,z_point), params.ORDER);  
+                std::tie(is_valid, iter_num) = cpu_fractals::mandel_point<data_t>
+                    (cpu_fractals::PixelPoint<data_t>(y_point,x_point,z_point), params.ORDER,params.MAX_ITER);  
                  
                 slice_diff(i,j) = iter_num - fractal_itval;  
                 cpu_slice(i,j) = iter_num;
@@ -211,12 +211,12 @@ void run_ocl_fractal(std::vector<data_t>& h_image_stack, const fractal_params& p
     dev_image = clCreateBuffer(ocl_context, CL_MEM_WRITE_ONLY, params.imheight * params.imwidth * sizeof(cl_int), nullptr, 0);
    
     const cl_uint work_dims = 2;
-    const size_t global_kernel_dims [work_dims] = {params.imheight, params.imwidth};  
+    const size_t global_kernel_dims [work_dims] = {static_cast<size_t>(params.imheight), static_cast<size_t>(params.imwidth)};  
  
     auto start = std::chrono::high_resolution_clock::now();
 
-    const cl_int2 constants = {{params.MAX_ITER, params.ORDER}};
-    const cl_int3 dimensions = {{params.imheight, params.imwidth, params.imdepth}};
+    const cl_int2 constants = {{static_cast<cl_int>(params.MAX_ITER), static_cast<cl_int>(params.ORDER)}};
+    const cl_int3 dimensions = {{static_cast<cl_int>(params.imheight), static_cast<cl_int>(params.imwidth), static_cast<cl_int>(params.imdepth)}};
     const cl_float3 flt_constants = {{params.MIN_LIMIT, params.MAX_LIMIT, params.BOUNDARY_VAL}};
 
     clSetKernelArg(ocl_kernel, 2, sizeof(cl_int3),  (void *)&dimensions);

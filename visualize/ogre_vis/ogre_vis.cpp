@@ -31,7 +31,7 @@ void FractalOgre::display_loop()
 //---------------------------------------------------------------------------------------        
 
       //check for new rendering events
-      fractal_data<fractal_types::point_type> fdata_evt;
+      fractal_data<fractal_types::point_type, data_t> fdata_evt;
       while(fractal_displayevtbuffer->pop(fdata_evt))
       {
         display_fractal(fdata_evt);

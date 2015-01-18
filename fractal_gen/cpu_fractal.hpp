@@ -47,14 +47,14 @@ struct FractalLimits
 };
 
 
-template <typename pixel_t, size_t NUM_ITER>
-std::tuple<bool, size_t> mandel_point(const PixelPoint<pixel_t> px_idx, const int order) 
+template <typename pixel_t>
+std::tuple<bool, size_t> mandel_point(const PixelPoint<pixel_t> px_idx, const int order, const size_t num_iter) 
 {
     PixelPoint<pixel_t> coords (0, 0, 0);
 
     size_t iter_num = 0;
     bool is_valid = true;
-    for (; iter_num < NUM_ITER; ++iter_num)
+    for (; iter_num < num_iter; ++iter_num)
     {
         //get polar coordinates
         pixel_t r = coords.get_magnitude();
@@ -83,7 +83,8 @@ std::tuple<bool, size_t> mandel_point(const PixelPoint<pixel_t> px_idx, const in
 template <typename pixel_t>
 void run_cpu_fractal(std::vector<pixel_t>& h_image_stack, const fractal_params& params)
 {
-    FractalLimits<double> limits(PixelPoint<size_t>(params.imheight, params.imwidth, params.imdepth)); 
+		using fpixel_t = double;
+    FractalLimits<fpixel_t> limits(PixelPoint<size_t>(params.imheight, params.imwidth, params.imdepth)); 
 
     cv::namedWindow("cpuslice", CV_WINDOW_AUTOSIZE);
 
@@ -102,8 +103,8 @@ void run_cpu_fractal(std::vector<pixel_t>& h_image_stack, const fractal_params& 
 
                 bool is_valid;
                 size_t iter_num;
-                std::tie(is_valid, iter_num) = mandel_point<double, params.MAX_ITER>
-                    (PixelPoint<double>(y_point,x_point,z_point), params.ORDER);   
+                std::tie(is_valid, iter_num) = mandel_point<fpixel_t>
+                    (PixelPoint<fpixel_t>(y_point,x_point,z_point), params.ORDER, params.MAX_ITER);   
 
                 if(is_valid)
                 {

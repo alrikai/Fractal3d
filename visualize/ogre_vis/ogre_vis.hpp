@@ -12,8 +12,9 @@
 class FractalOgre
 {
 public:
+	using data_t = float;
   typedef boost::lockfree::spsc_queue<fractal_genevent, boost::lockfree::capacity<128>> FractalBufferType;
-  typedef boost::lockfree::spsc_queue<fractal_data<fractal_types::point_type>, boost::lockfree::capacity<128>> FractalDisplayBufferType;
+  typedef boost::lockfree::spsc_queue<fractal_data<fractal_types::point_type, data_t>, boost::lockfree::capacity<128>> FractalDisplayBufferType;
 
   FractalOgre(const float rotate_factor, const float pan_factor)
     : ogre_data(plugins_cfg_filename, resource_cfg_filename, rotate_factor, pan_factor), current_fractal_node(nullptr)
@@ -46,7 +47,7 @@ public:
   }
 
   template <typename point_t = fractal_types::point_type>
-  void display_fractal (fractal_data<point_t> fractal);
+  void display_fractal (fractal_data<point_t, data_t> fractal);
 
 private:
   struct OgreData : public Ogre::FrameListener, public Ogre::WindowEventListener
@@ -115,7 +116,7 @@ private:
 
 //draw the input fractal to the display
 template <typename point_t>
-void FractalOgre::display_fractal (fractal_data<point_t> fractal)
+void FractalOgre::display_fractal (fractal_data<point_t, FractalOgre::data_t> fractal)
 {
   //put the fractal in the middle of the scene
   const std::vector<float> target_coord = fractal.target_coord;
