@@ -15,7 +15,7 @@
 #include <chrono>
 #include <stdexcept>
 
-#include "cpu_fractal.hpp"
+#include "../cpu_fractal.hpp"
 #include "util/ocl_helpers.hpp"
 
 namespace fractal_helpers
@@ -51,88 +51,11 @@ struct fractal_options
 
 } //namespace fractal_helpers
 
-template <template <class, class> class ptcloud_t, typename pt_t, typename data_t, int debug_run=0>
-void make_pointcloud(const std::vector<data_t>& h_image_stack, const fractal_params& params, ptcloud_t<pt_t, data_t>& pt_cloud)
-{
-  auto start = std::chrono::high_resolution_clock::now();
-  
-  cpu_fractals::FractalLimits<data_t> limits(cpu_fractals::PixelPoint<size_t>(params.imheight, params.imwidth, params.imdepth));
-
-  for (int k = 0; k < params.imdepth; ++k)
-  {
-      auto z_point = limits.offset_Z(k);
-
-      cv::Mat_<int> slice_diff = cv::Mat_<int>::zeros(params.imheight, params.imwidth);
-      cv::Mat_<int> ocl_slice = cv::Mat_<int>::zeros(params.imheight, params.imwidth);
-      cv::Mat_<int> cpu_slice = cv::Mat_<int>::zeros(params.imheight, params.imwidth);
-      
-      int h_image_stack_offset = params.imheight * params.imwidth * k;
-      const data_t* h_image_slice = &h_image_stack[h_image_stack_offset];
-      for (int i = 0; i < params.imheight; ++i)
-      {
-          auto y_point = limits.offset_Y(i);
-          for (int j = 0; j < params.imwidth; ++j)
-          {
-              auto fractal_itval = h_image_slice[i*params.imwidth+j];
-              if(fractal_itval == params.MAX_ITER-1)
-                  pt_cloud.emplace_back(j,i,k,fractal_itval);
-
-              if(debug_run)
-              {
-                auto x_point = limits.offset_X(j);
-                bool is_valid;
-                size_t iter_num;
-                std::tie(is_valid, iter_num) = cpu_fractals::mandel_point<data_t>
-                    (cpu_fractals::PixelPoint<data_t>(y_point,x_point,z_point), params.ORDER,params.MAX_ITER);  
-                 
-                slice_diff(i,j) = iter_num - fractal_itval;  
-                cpu_slice(i,j) = iter_num;
-              }
-
-              if(fractal_itval == params.MAX_ITER-1)
-                ocl_slice(i,j) = 255;
-          }
-      }
-
-     
-      if(debug_run)
-      {
-        auto px_sum = cv::sum(cv::sum(ocl_slice)) / 255;
-        std::cout << "Image " << k << " Generated... has " << ((px_sum[0] > 0) ? std::to_string(px_sum[0]):"NO") << " non-zero elements" << std::endl;
-      }
-
-      if(debug_run)
-      {
-        auto diff_extrema = std::minmax_element(slice_diff.begin(), slice_diff.end());
-        auto min_diff = *diff_extrema.first;
-        auto max_diff = *diff_extrema.second;
-        if(max_diff > 1 || min_diff < -1)
-            std::cout << "Slice " << k << " differed" << std::endl;
-
-        std::string slice_diff_name = "slice_diff_" + std::to_string(k);
-        cv::imwrite((slice_diff_name + ".png"), cv::abs(slice_diff));
-        cv::FileStorage slice_storage((slice_diff_name + ".yml"), cv::FileStorage::WRITE);
-        slice_storage << slice_diff_name << slice_diff;
-        slice_storage << "ocl slice" << ocl_slice;
-        slice_storage << "cpu slice" << cpu_slice;
-        slice_storage.release();  
-        std::string cpu_slice_name = "cpu_slice_" + std::to_string(k) + ".png";
-        cv::imwrite(cpu_slice_name, cpu_slice);
-
-        std::string ocl_slice_name = params.fractal_name + "_ocl_slice_" + std::to_string(k) + ".png";
-        cv::imwrite(ocl_slice_name, ocl_slice);
-      }        
-  }
-
-  auto end = std::chrono::high_resolution_clock::now();
-  auto duration = std::chrono::duration<double, std::milli>(end - start);
-  std::cout << "Fractal Comparison Time: " << duration.count() << " ms" << std::endl;   
-}
 
 template <typename data_t>
 void run_ocl_fractal(std::vector<data_t>& h_image_stack, const fractal_params& params)
 {
-  bool verbose_run = false;
+  bool verbose_run = !false;
     std::string target_platform_id {"NVIDIA"};
     //get ONE GPU device on the target platform 
     const int num_gpu = 1;
@@ -163,9 +86,14 @@ void run_ocl_fractal(std::vector<data_t>& h_image_stack, const fractal_params& p
     // Create a command queue for the device in the context
     cl_command_queue ocl_command_queue = clCreateCommandQueue(ocl_context, device_id, 0, nullptr);
 
-    const std::string file_name { "../ocl_fractals/fractal3d.cl" };
+    //NOTE: should I use boost::filepath for the ocl files?
+    const std::string kernel_fpath = ocl_helpers::get_kernelpath();
+    const std::string file_name { kernel_fpath + "fractal3d.cl" }; 
     std::string program_source;
     ocl_helpers::load_kernel_file(file_name, program_source);
+		
+    //NOTE: might be able to do some error recovery instead (e.g. switch to CPU fractals)
+    assert(!program_source.empty());
 
     //create + compile the opencl program
     auto kernel_source_code = program_source.c_str();
@@ -177,12 +105,12 @@ void run_ocl_fractal(std::vector<data_t>& h_image_stack, const fractal_params& p
     std::string fractal_id_list = "";
     std::for_each(fracids.begin(), fracids.end(), [&fractal_id_list](const std::string& id)
     {
-      fractal_id_list += ("-D" + fractal_helpers::fractal_options::get_ocl_id(id));
+      fractal_id_list += (" -- " + fractal_helpers::fractal_options::get_ocl_id(id));
     });
 
     std::cout << "fractal ID list: " << fractal_id_list << std::endl;
     const std::string ocl_fractal_id = fractal_helpers::fractal_options::get_ocl_id(params.fractal_name);
-    const std::string cl_opts {"-DFRACTALID=" + std::to_string(1)};
+    const std::string cl_opts {"-DFRACTALID=" + ocl_fractal_id};
     ocl_error_num = clBuildProgram(ocl_program, 0, 0, cl_opts.c_str(), nullptr, nullptr);
     if(ocl_error_num != CL_SUCCESS)
         std::cout << "ERROR @ PROGRAM BUILD -- " << ocl_error_num << std::endl;
@@ -205,7 +133,7 @@ void run_ocl_fractal(std::vector<data_t>& h_image_stack, const fractal_params& p
     const std::string fractal_kernel_name = "fractal3d";
     cl_kernel ocl_kernel = clCreateKernel(ocl_program, fractal_kernel_name.c_str(), &ocl_error_num);
     if(ocl_error_num != CL_SUCCESS)
-        std::cout << "ERROR @ KERNEL CREATION -- " << ocl_error_num << std::endl;
+        std::cout << "ERROR @ KERNEL CREATION -- " << ocl_error_num  << " -- kernel name: " << fractal_kernel_name << std::endl;
   
     cl_mem dev_image;
     dev_image = clCreateBuffer(ocl_context, CL_MEM_WRITE_ONLY, params.imheight * params.imwidth * sizeof(cl_int), nullptr, 0);
@@ -234,7 +162,7 @@ void run_ocl_fractal(std::vector<data_t>& h_image_stack, const fractal_params& p
 
         int h_image_stack_offset = params.imheight * params.imwidth * depth_idx;
         ocl_error_num = clEnqueueReadBuffer(ocl_command_queue, dev_image, CL_TRUE, 0, params.imheight * params.imwidth * sizeof(cl_int), 
-                                            &h_image_stack[h_image_stack_offset], 0, 0, 0);
+                                            &h_image_stack[h_image_stack_offset], 0, nullptr, nullptr);
         if(ocl_error_num != CL_SUCCESS)
             std::cout << "ERROR @ DATA RETRIEVE -- " << ocl_error_num << std::endl;
 

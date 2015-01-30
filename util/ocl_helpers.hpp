@@ -58,6 +58,28 @@ bool load_kernel_file(const std::string& file_name, std::string& kernel_source)
     return true;
 }
 
+//converts the pre-processor symbol for the preprocessor path (OCLKERNEL_FILEPATH) to a std::string
+inline std::string get_kernelpath()
+{
+#define STRINGIFY(x) #x
+#define TOSTRING(x) STRINGIFY(x)
+
+    //generate the buffer for the path string. Make sure it's null-terminated
+    const size_t path_len = snprintf(NULL, 0, "%s", TOSTRING(OCLKERNEL_FILEPATH)) + 1;
+    std::unique_ptr<char []> path_buffer = std::unique_ptr<char []> (new char[path_len]);
+    std::fill(path_buffer.get(), path_buffer.get() + path_len, 0);
+   
+    //copy the path string to a C++ string
+    snprintf(path_buffer.get(), path_len, "%s", TOSTRING(OCLKERNEL_FILEPATH));
+    std::string data_filepath;
+    data_filepath.assign(path_buffer.get());
+
+#undef TOSTRING
+#undef STRINGIFY
+
+    return data_filepath;
+}
+
 } //namespace ocl_helpers
 
 #endif

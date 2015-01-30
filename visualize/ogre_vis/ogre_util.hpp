@@ -217,11 +217,10 @@ struct HandleUserInput
         auto world_click = ray.getPoint(click_distance);
         //const std::string fractal_name {"rclickminimal_fractal_" + std::to_string(fractal_count)};
         
-        //TODO: we'll want some sort of GUI for selecting parameters, etc.
-        
+        //TODO: we'll want some sort of GUI for selecting these sort of parameters, etc.
         fractal_params params;
         params.imheight  = 128;
-        params.imwidth   = 129;
+        params.imwidth   = 128;
         params.imdepth   = 128;
         params.MIN_LIMIT = -1.2f;
         params.MAX_LIMIT =  1.2f;

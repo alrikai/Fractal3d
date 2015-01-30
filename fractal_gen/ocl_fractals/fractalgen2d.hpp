@@ -48,7 +48,7 @@ void run_oclfractal(std::vector<data_t>& h_image_stack, const ocl_helpers::fract
     // Create a command queue for the device in the context
     cl_command_queue ocl_command_queue = clCreateCommandQueue(ocl_context, device_id, 0, nullptr);
 
-    const std::string file_name { "../ocl_fractal.cl" };
+    const std::string file_name { "fractal2d.cl" };
     std::string program_source;
     load_kernel_file(file_name, program_source);
 

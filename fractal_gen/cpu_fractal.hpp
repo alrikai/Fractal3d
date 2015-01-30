@@ -93,7 +93,8 @@ void run_cpu_fractal(std::vector<pixel_t>& h_image_stack, const fractal_params& 
         auto z_point = limits.offset_Z(z);
         const int slice_offset = params.imheight * params.imwidth * z;
         cv::Mat_<pixel_t> image = cv::Mat_<pixel_t>(params.imheight, params.imwidth, &h_image_stack[slice_offset]);
-        image = cv::Mat_<pixel_t>::zeros(params.imheight, params.imwidth);
+        //image = cv::Mat_<pixel_t>::zeros(params.imheight, params.imwidth);
+				//std::fill(image.begin(), image.end(), 0);
         for (size_t y = 0; y < params.imheight; ++y)
         {
             auto y_point = limits.offset_Y(y);
@@ -114,6 +115,10 @@ void run_cpu_fractal(std::vector<pixel_t>& h_image_stack, const fractal_params& 
             }   
         }
 
+				bool debug_mode = false;
+
+				if(debug_mode)
+				{
         auto px_sum = cv::sum(cv::sum(image)) / 255;
         std::cout << "Image " << z << " Generated... has " << ((px_sum[0] > 0) ? std::to_string(px_sum[0]):"NO") << " non-zero elements" << std::endl;
 
@@ -123,6 +128,7 @@ void run_cpu_fractal(std::vector<pixel_t>& h_image_stack, const fractal_params& 
         cv::Mat_<pixel_t> display_image = image;
         cv::imshow("cpuslice", display_image);
         cv::waitKey(10);
+				}
     }
 }
 

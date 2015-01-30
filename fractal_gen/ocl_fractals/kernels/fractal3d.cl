@@ -1,8 +1,4 @@
-#include <stdio.h>
-#include <assert.h>
-#include <cuda_runtime.h>
-
-__device__ float4 juliabulb(const float3 dim_limits, const float r, const float theta, const float phi)
+float4 juliabulb(const float3 dim_limits, const float r, const float theta, const float phi)
 {
     float4 out_coords;
     out_coords.s3 = r * r * r * r * r * r * r * r;
@@ -12,7 +8,7 @@ __device__ float4 juliabulb(const float3 dim_limits, const float r, const float 
     return out_coords;
 }
 
-__device__ float4 mandelbulb(const float3 dim_limits, const float r, const float theta, const float phi)
+float4 mandelbulb(const float3 dim_limits, const float r, const float theta, const float phi)
 {
     float4 out_coords;
     out_coords.s3 = r * r * r * r * r * r * r * r;
@@ -22,9 +18,8 @@ __device__ float4 mandelbulb(const float3 dim_limits, const float r, const float
     return out_coords;
 }
 
-template <int FRACTAL_ID> 
-__global__ void fractal3d
-         (int* restrict image,
+__kernel void fractal3d_
+         (__global int* restrict image,
           const int depth_idx,
           const int3 dimensions,
           const int2 INT_CONSTANTS,
@@ -58,26 +53,18 @@ __global__ void fractal3d
 
         theta = ORDER * atan2(sqrt(coords.s0 * coords.s0 + coords.s1 * coords.s1), coords.s2);
         phi =   ORDER * atan2(coords.s0, coords.s1);
-        
-        //use the given fractal type
-        switch(FRACTAL_ID)
-        {
-          case MANDELBROT:
-          {
-  				  coords = mandelbulb(dim_limits, r, theta, phi);  
-            break;
-          }
-          case JULIA:
-          {
-  				  coords = juliabulb(dim_limits, r, theta, phi);  
-            break;
-          }        
-        }
+          
+				coords = mandelbulb(dim_limits, r, theta, phi);  
     }
-    
-    image[threadIdx.x + blockIdx.x*blockDim.x] = max(0, iter_num-1);
+    image[get_global_id(0) * dimensions.s1 + get_global_id(1)] = max(0, iter_num-1);
 }                      
 
-
-
-
+__kernel void fractal3d
+         (__global int* restrict image,
+          const int depth_idx,
+          const int3 dimensions,
+          const int2 INT_CONSTANTS,
+          const float3 FLT_CONSTANTS)
+{
+image[get_global_id(0) * dimensions.s1 + get_global_id(1)] = 79;
+}
