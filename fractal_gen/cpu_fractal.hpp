@@ -32,7 +32,7 @@ struct PixelPoint
 template <typename T>
 struct FractalLimits
 {
-    explicit FractalLimits(const PixelPoint<size_t> dims, const T MIN = -1.2, const T MAX = 1.2)
+    explicit FractalLimits(const PixelPoint<T> dims, const T MIN = -1.2, const T MAX = 1.2)
         : DIMENSIONS(dims), MIN_LIMIT(MIN), MAX_LIMIT(MAX), LIMIT_DIFF(MAX-MIN)
     {}
 
@@ -40,37 +40,36 @@ struct FractalLimits
     inline T offset_Y(const T y_idx) { return MIN_LIMIT + y_idx * (LIMIT_DIFF / DIMENSIONS.row);   }
     inline T offset_Z(const T z_idx) { return MIN_LIMIT + z_idx * (LIMIT_DIFF / DIMENSIONS.depth); }
 
-    const PixelPoint<size_t> DIMENSIONS;
+    const PixelPoint<T> DIMENSIONS;
     const T MIN_LIMIT;
     const T MAX_LIMIT;
     const T LIMIT_DIFF;
 };
 
 
-template <typename pixel_t>
-std::tuple<bool, size_t> mandel_point(const PixelPoint<pixel_t> px_idx, const int order, const size_t num_iter) 
+template <typename pixel_t, typename data_t>
+std::tuple<bool, pixel_t> mandel_point(const PixelPoint<data_t> px_idx, const int order, const size_t num_iter) 
 {
-    PixelPoint<pixel_t> coords (0, 0, 0);
+    PixelPoint<data_t> coords (0, 0, 0);
 
-    size_t iter_num = 0;
+    pixel_t iter_num = 0;
     bool is_valid = true;
     for (; iter_num < num_iter; ++iter_num)
     {
         //get polar coordinates
-        pixel_t r = coords.get_magnitude();
-        pixel_t theta = order * std::atan2(std::sqrt(coords.row*coords.row + coords.col*coords.col), coords.depth);
-        pixel_t phi = order * std::atan2(coords.row, coords.col);
+        data_t r = coords.get_magnitude();
+        data_t theta = order * std::atan2(std::sqrt(coords.row*coords.row + coords.col*coords.col), coords.depth);
+        data_t phi = order * std::atan2(coords.row, coords.col);
 
         assert(!std::isnan(theta));
         assert(!std::isnan(phi));
 
-        pixel_t r_factor = std::pow(r, order);
+        data_t r_factor = std::pow(r, order);
         coords.col = r_factor * std::sin(theta) * std::cos(phi);
         coords.row = r_factor * std::sin(theta) * std::sin(phi);
         coords.depth = r_factor * std::cos(theta);
 
         coords.add_point(px_idx);
-
         if(coords.get_magnitude() > 2)
         {
             is_valid = false;
@@ -83,8 +82,8 @@ std::tuple<bool, size_t> mandel_point(const PixelPoint<pixel_t> px_idx, const in
 template <typename pixel_t>
 void run_cpu_fractal(std::vector<pixel_t>& h_image_stack, const fractal_params& params)
 {
-		using fpixel_t = double;
-    FractalLimits<fpixel_t> limits(PixelPoint<size_t>(params.imheight, params.imwidth, params.imdepth)); 
+		using fpixel_t = float;
+    FractalLimits<fpixel_t> limits(PixelPoint<pixel_t>(params.imheight, params.imwidth, params.imdepth)); 
 
     cv::namedWindow("cpuslice", CV_WINDOW_AUTOSIZE);
 
@@ -104,7 +103,7 @@ void run_cpu_fractal(std::vector<pixel_t>& h_image_stack, const fractal_params& 
 
                 bool is_valid;
                 size_t iter_num;
-                std::tie(is_valid, iter_num) = mandel_point<fpixel_t>
+                std::tie(is_valid, iter_num) = mandel_point<pixel_t, fpixel_t>
                     (PixelPoint<fpixel_t>(y_point,x_point,z_point), params.ORDER, params.MAX_ITER);   
 
                 if(is_valid)

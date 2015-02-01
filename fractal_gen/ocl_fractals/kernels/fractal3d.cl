@@ -18,8 +18,8 @@ float4 mandelbulb(const float3 dim_limits, const float r, const float theta, con
     return out_coords;
 }
 
-__kernel void fractal3d_
-         (__global int* restrict image,
+__kernel void fractal3d
+         (__global unsigned char* restrict image,
           const int depth_idx,
           const int3 dimensions,
           const int2 INT_CONSTANTS,
@@ -56,15 +56,8 @@ __kernel void fractal3d_
           
 				coords = mandelbulb(dim_limits, r, theta, phi);  
     }
+
+		iter_num = clamp(iter_num, 0, 255);
     image[get_global_id(0) * dimensions.s1 + get_global_id(1)] = max(0, iter_num-1);
 }                      
 
-__kernel void fractal3d
-         (__global int* restrict image,
-          const int depth_idx,
-          const int3 dimensions,
-          const int2 INT_CONSTANTS,
-          const float3 FLT_CONSTANTS)
-{
-image[get_global_id(0) * dimensions.s1 + get_global_id(1)] = 79;
-}

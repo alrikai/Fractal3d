@@ -9,7 +9,7 @@
 #define MANDELBROT 0
 #define JULIA 1
 
-template <int FRACTAL_ID> __host__ 
-void run_fractalgen(int* dev_image, int depth_idx, const int3 dimensions, const int2 constants, const float3 flt_constants);
+template <typename pixel_t, int FRACTAL_ID> __host__ 
+void run_fractalgen(pixel_t* dev_image, int depth_idx, const int4 dimensions, const int2 constants, const float4 flt_constants);
 
 #endif

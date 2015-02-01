@@ -73,19 +73,18 @@ inline void cuda_error_check(cudaError_t err_id)
 template <typename data_t>
 void run_cuda_fractal(std::vector<data_t>& h_image_stack, const fractal_params& params)
 {
-  bool verbose_run = !false;
   std::cout << "Using CUDA" << std::endl;
 
-  const size_t imageslice_sz = params.imheight * params.imwidth * sizeof(int);
-  int* dev_image;
-  cudaError_t cu_error_id = cudaMalloc(&dev_image, imageslice_sz);
+  const size_t imageslice_sz = params.imheight * params.imwidth * sizeof(data_t);
+  data_t* dev_image;
+  cudaError_t cu_error_id = cudaMalloc((void**)&dev_image, imageslice_sz);
   cuda_error_check (cu_error_id);
  
   auto start = std::chrono::high_resolution_clock::now();
 
   const int2 constants = {static_cast<int>(params.MAX_ITER), params.ORDER};
-  const int3 dimensions = {params.imheight, params.imwidth, params.imdepth};
-  const float3 flt_constants = {params.MIN_LIMIT, params.MAX_LIMIT, params.BOUNDARY_VAL};
+  const int4 dimensions = {params.imheight, params.imwidth, params.imdepth, 0};
+  const float4 flt_constants = {params.MIN_LIMIT, params.MAX_LIMIT, params.BOUNDARY_VAL, 0.0f};
 
   for (int depth_idx = 0; depth_idx < params.imdepth; ++depth_idx)
   {
@@ -94,21 +93,32 @@ void run_cuda_fractal(std::vector<data_t>& h_image_stack, const fractal_params& 
 
     //e.g. MANDELBROT --> 0, JULIA --> 1, ETC... TODO: define this mapping...
     static constexpr int FRACTAL_ID = MANDELBROT;
-    run_fractalgen<FRACTAL_ID> (dev_image, depth_idx, dimensions, constants, flt_constants);
-    //fractal3d <MANDELBROT_ID> <<<grid_dim, block_dim>>> (dev_image, depth_idx, dimensions, constants, flt_constants);
+    run_fractalgen<data_t, FRACTAL_ID> (dev_image, depth_idx, dimensions, constants, flt_constants);
 
-    int h_image_stack_offset = params.imheight * params.imwidth * depth_idx;
-    cu_error_id = cudaMemcpy(&h_image_stack[h_image_stack_offset], dev_image, imageslice_sz, cudaMemcpyDeviceToHost); 
+    //------------------------------------------------------
+    //NOTE: shouldnt be necessary since we're only using 1 stream
+    cu_error_id = cudaDeviceSynchronize();
+    cuda_error_check (cu_error_id);
+    //------------------------------------------------------
+
+    const int h_image_stack_offset = params.imheight * params.imwidth * depth_idx;
+    auto host_slice_image = &h_image_stack[h_image_stack_offset];
+    cu_error_id = cudaMemcpy(host_slice_image, dev_image, imageslice_sz, cudaMemcpyDeviceToHost); 
     cuda_error_check (cu_error_id);
   
+    bool verbose_run = !false;
     if(verbose_run)
     {
-      auto slice_sum = std::accumulate(&h_image_stack[h_image_stack_offset], &h_image_stack[h_image_stack_offset] + params.imheight * params.imwidth, 0);
+      auto slice_sum = std::accumulate(&h_image_stack[h_image_stack_offset], &h_image_stack[h_image_stack_offset] + imageslice_sz, 0);
       std::cout << "slice " << depth_idx << " sum: " << slice_sum << std::endl;
     }
   }
 
   //---------------------------------------------------------------
+
+  cu_error_id = cudaFree(dev_image);
+  cuda_error_check (cu_error_id);
+//  cudaDeviceReset(); 
 
 /*
     auto fracids = fractal_helpers::fractal_options::get_ids();

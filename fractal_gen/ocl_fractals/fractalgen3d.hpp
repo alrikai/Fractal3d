@@ -55,7 +55,9 @@ struct fractal_options
 template <typename data_t>
 void run_ocl_fractal(std::vector<data_t>& h_image_stack, const fractal_params& params)
 {
-  bool verbose_run = !false;
+  bool verbose_run = false;
+	using cldata_t = cl_uchar;
+
     std::string target_platform_id {"NVIDIA"};
     //get ONE GPU device on the target platform 
     const int num_gpu = 1;
@@ -136,7 +138,7 @@ void run_ocl_fractal(std::vector<data_t>& h_image_stack, const fractal_params& p
         std::cout << "ERROR @ KERNEL CREATION -- " << ocl_error_num  << " -- kernel name: " << fractal_kernel_name << std::endl;
   
     cl_mem dev_image;
-    dev_image = clCreateBuffer(ocl_context, CL_MEM_WRITE_ONLY, params.imheight * params.imwidth * sizeof(cl_int), nullptr, 0);
+    dev_image = clCreateBuffer(ocl_context, CL_MEM_WRITE_ONLY, params.imheight * params.imwidth * sizeof(cldata_t), nullptr, 0);
    
     const cl_uint work_dims = 2;
     const size_t global_kernel_dims [work_dims] = {static_cast<size_t>(params.imheight), static_cast<size_t>(params.imwidth)};  
@@ -161,7 +163,7 @@ void run_ocl_fractal(std::vector<data_t>& h_image_stack, const fractal_params& p
             std::cout << "ERROR @ KERNEL LAUNCH -- " << ocl_error_num << " @depth " << depth_idx << std::endl;
 
         int h_image_stack_offset = params.imheight * params.imwidth * depth_idx;
-        ocl_error_num = clEnqueueReadBuffer(ocl_command_queue, dev_image, CL_TRUE, 0, params.imheight * params.imwidth * sizeof(cl_int), 
+        ocl_error_num = clEnqueueReadBuffer(ocl_command_queue, dev_image, CL_TRUE, 0, params.imheight * params.imwidth * sizeof(cldata_t), 
                                             &h_image_stack[h_image_stack_offset], 0, nullptr, nullptr);
         if(ocl_error_num != CL_SUCCESS)
             std::cout << "ERROR @ DATA RETRIEVE -- " << ocl_error_num << std::endl;

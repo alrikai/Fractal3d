@@ -10,10 +10,10 @@
 
 int main()
 {
-  using data_t = float;
+  using pixel_t = unsigned char;
   using fpoint_t = fractal_types::point_type;
-  using fractal_backend_t = fractal_generator<cudaFractals, fpoint_t, data_t>;
-  using fractal_frontend_t = FractalOgre; 
+  using fractal_backend_t = fractal_generator<cudaFractals, fpoint_t, pixel_t>;
+  using fractal_frontend_t = FractalOgre<pixel_t>; 
   using fractal_t = Fractals<fractal_backend_t, fractal_frontend_t>;
 
   auto fgenerator = new fractal_backend_t ();

@@ -20,12 +20,12 @@ __device__ float4 mandelbulb(const float3 dim_limits, const float r, const float
     return out_coords;
 }
 
-template <int FRACTAL_ID> 
-__global__ void fractal3d (int* image,
+template <typename pixel_t, int FRACTAL_ID> 
+__global__ void fractal3d_kernel (pixel_t* image,
                            const int depth_idx,
-                           const int3 dimensions,
+                           const int4 dimensions,
                            const int2 INT_CONSTANTS,
-                           const float3 FLT_CONSTANTS)
+                           const float4 FLT_CONSTANTS)
 {
     const float MIN_LIMIT = FLT_CONSTANTS.x;
     const float MAX_LIMIT = FLT_CONSTANTS.y;
@@ -48,7 +48,7 @@ __global__ void fractal3d (int* image,
     float r = 0.0f;
     float theta = 0.0f;
     float phi = 0.0f;
-    int iter_num = 0;
+    pixel_t iter_num = 0;
     for (iter_num = 0; iter_num < INT_CONSTANTS.x; ++iter_num)
     {
         r = sqrt(coords.x * coords.x + coords.y * coords.y + coords.z * coords.z);
@@ -73,23 +73,22 @@ __global__ void fractal3d (int* image,
           }        
         }
     }
-   
     image[index_y * dimensions.x + index_x] = max(0, iter_num-1);
 }
 
 //--------------------------------------------------------------------------------------------------------------------------------
 
-template <int FRACTAL_ID> __host__ 
-void run_fractalgen(int* dev_image, int depth_idx, const int3 dimensions, const int2 constants, const float3 flt_constants)
+template <typename pixel_t, int FRACTAL_ID> __host__ 
+void run_fractalgen(pixel_t* dev_image, int depth_idx, const int4 dimensions, const int2 constants, const float4 flt_constants)
 {
-
+  static constexpr int blockdim = 16;
   //want to process a frame per kernel invocation -- frames will be something e.g. [128 x 128], [512 x 512], [1024 x 1024], etc. 
-  dim3 block_dim (16, 16);
-  dim3 grid_dim  (dimensions.x / block_dim.x, dimensions.y / block_dim.y);
+  dim3 block_dim (blockdim, blockdim);
+  dim3 grid_dim  (static_cast<int>(std::ceil(dimensions.x / static_cast<float>(blockdim))), static_cast<int>(std::ceil(dimensions.y / static_cast<float>(blockdim))));
 
-  fractal3d<FRACTAL_ID><<<grid_dim, block_dim>>> (dev_image, depth_idx, dimensions, constants, flt_constants);
+  fractal3d_kernel<pixel_t, FRACTAL_ID><<<grid_dim, block_dim>>> (dev_image, depth_idx, dimensions, constants, flt_constants);
 }
 
-template __host__ void run_fractalgen <0> (int*, int, const int3, const int2, const float3);
-template __host__ void run_fractalgen <1> (int*, int, const int3, const int2, const float3);
+template __host__ void run_fractalgen <unsigned char, 0> (unsigned char*, int, const int4, const int2, const float4);
+template __host__ void run_fractalgen <unsigned char, 1> (unsigned char*, int, const int4, const int2, const float4);
 

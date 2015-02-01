@@ -1,3 +1,5 @@
+#if 0
+
 #include <iostream>
 #include <memory>
 #include <chrono>
@@ -10,8 +12,8 @@
 #include "controller/Controller.hpp"
 #include "controller/ControllerUtil.hpp"
 
-
-void FractalOgre::display_loop()
+template <typename pixel_t, typename data_t>
+void FractalOgre<pixel_t, data_t>::display_loop()
 {
   HandleUserInput input_handler (ogre_data.root.get(), ogre_data.render_window, ogre_data.map_node, ogre_data.cam_move, ogre_data.cam_rotate);
   std::unique_ptr<MinimalWindowEventListener> window_event_listener(new MinimalWindowEventListener());
@@ -31,7 +33,7 @@ void FractalOgre::display_loop()
 //---------------------------------------------------------------------------------------        
 
       //check for new rendering events
-      fractal_data<fractal_types::point_type, data_t> fdata_evt;
+      fractal_data<fractal_types::point_type, pixel_t> fdata_evt;
       while(fractal_displayevtbuffer->pop(fdata_evt))
       {
         display_fractal(fdata_evt);
@@ -55,7 +57,8 @@ void FractalOgre::display_loop()
 
 //---------------------------------------------------------------------------------------        
 
-void FractalOgre::OgreData::make_map(const std::string& mesh_name)
+template <typename pixel_t, typename data_t>
+void FractalOgre<pixel_t, data_t>::OgreData::make_map(const std::string& mesh_name)
 {
 	//create a prefab plane to use as the map
 	auto map_plane = scene_mgmt->createEntity(mesh_name, Ogre::SceneManager::PT_PLANE);
@@ -65,7 +68,8 @@ void FractalOgre::OgreData::make_map(const std::string& mesh_name)
 	map_node->attachObject(map_plane);
 }
 
-void FractalOgre::OgreData::setup_lights()
+template <typename pixel_t, typename data_t>
+void FractalOgre<pixel_t, data_t>::OgreData::setup_lights()
 {
   main_light = scene_mgmt->createLight("MainLight");
   main_light->setType(Ogre::Light::LightTypes::LT_DIRECTIONAL);
@@ -85,7 +89,8 @@ void FractalOgre::OgreData::setup_lights()
   spotLight->setSpotlightRange(Ogre::Degree(35), Ogre::Degree(50));
 }
 
-void FractalOgre::OgreData::setup_camera()
+template <typename pixel_t, typename data_t>
+void FractalOgre<pixel_t, data_t>::OgreData::setup_camera()
 {
     camera = scene_mgmt->createCamera("MinimalCamera");
     camera->setNearClipDistance(5);
@@ -96,7 +101,8 @@ void FractalOgre::OgreData::setup_camera()
     camera->lookAt(Ogre::Vector3(0,0,0));
 }
 
-void FractalOgre::OgreData::ogre_setup()
+template <typename pixel_t, typename data_t>
+void FractalOgre<pixel_t, data_t>::OgreData::ogre_setup()
 {
     //load resources
   	ogre_util::load_resources(resource_cfg_filename);
@@ -111,15 +117,14 @@ void FractalOgre::OgreData::ogre_setup()
     root_node = scene_mgmt->getRootSceneNode();
 }
 
-void FractalOgre::OgreData::start_display(const std::string& map_materialname, const std::string& skybox_material)
+template <typename pixel_t, typename data_t>
+void FractalOgre<pixel_t, data_t>::OgreData::start_display(const std::string& map_materialname, const std::string& skybox_material)
 {
 	make_map(map_materialname);
 	scene_mgmt->setSkyBox(true, skybox_material, 5000);
 	view_port->setSkiesEnabled(true);	
 }
 
-const std::string FractalOgre::resource_cfg_filename {"resources.cfg"}; 
-const std::string FractalOgre::plugins_cfg_filename {"plugins.cfg"}; 
-const std::string FractalOgre::fractal_name {"minimal_fractal"};
 
 
+#endif

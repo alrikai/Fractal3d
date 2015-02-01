@@ -19,25 +19,25 @@ struct point_type
   int x, y, z;
 };
 
-template <typename point_t, typename data_t>
+template <typename point_t, typename pixel_t>
 struct fractal_point : public point_t
 {
   fractal_point()
     : point_t(), value(0)
   {}
 
-  fractal_point(int x_coord, int y_coord, int z_coord, data_t val)
+  fractal_point(int x_coord, int y_coord, int z_coord, pixel_t val)
     : point_type(x_coord, y_coord, z_coord), value(val)
   {}
   
-  data_t value;
+  pixel_t value;
 };
 
-template <typename point_t, typename data_t = int32_t>
+template <typename point_t, typename pixel_t>
 struct pointcloud
 {
-	typedef fractal_point<point_t, data_t> cloud_point_t;
-  void push_back(fractal_point<point_t, data_t> pt)
+	typedef fractal_point<point_t, pixel_t> cloud_point_t;
+  void push_back(fractal_point<point_t, pixel_t> pt)
   {
     cloud.push_back(pt);
   }
@@ -48,7 +48,7 @@ struct pointcloud
     cloud.emplace_back(std::forward<Args>(args)...);
 	}
 
-  std::vector<fractal_point<point_t, data_t>> cloud; 
+  std::vector<fractal_point<point_t, pixel_t>> cloud; 
 };
 } //namespace fractal_types
 
@@ -83,10 +83,10 @@ struct fractal_genevent
 };
 
 //holds the generated fractal data
-template <typename point_t, typename data_t>
+template <typename point_t, typename pixel_t>
 struct fractal_data
 {
-  fractal_types::pointcloud<point_t, data_t> point_cloud;
+  fractal_types::pointcloud<point_t, pixel_t> point_cloud;
 	fractal_params params;
 
   std::vector<float> target_coord;
