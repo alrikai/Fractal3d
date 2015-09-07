@@ -82,8 +82,8 @@ std::tuple<bool, pixel_t> mandel_point(const PixelPoint<data_t> px_idx, const in
 template <typename pixel_t>
 void run_cpu_fractal(std::vector<pixel_t>& h_image_stack, const fractal_params& params)
 {
-		using fpixel_t = float;
-    FractalLimits<fpixel_t> limits(PixelPoint<pixel_t>(params.imheight, params.imwidth, params.imdepth)); 
+    using fpixel_t = float;
+    FractalLimits<fpixel_t> limits(PixelPoint<fpixel_t>(params.imheight, params.imwidth, params.imdepth)); 
 
     cv::namedWindow("cpuslice", CV_WINDOW_AUTOSIZE);
 
@@ -93,7 +93,7 @@ void run_cpu_fractal(std::vector<pixel_t>& h_image_stack, const fractal_params& 
         const int slice_offset = params.imheight * params.imwidth * z;
         cv::Mat_<pixel_t> image = cv::Mat_<pixel_t>(params.imheight, params.imwidth, &h_image_stack[slice_offset]);
         //image = cv::Mat_<pixel_t>::zeros(params.imheight, params.imwidth);
-				//std::fill(image.begin(), image.end(), 0);
+        //std::fill(image.begin(), image.end(), 0);
         for (size_t y = 0; y < params.imheight; ++y)
         {
             auto y_point = limits.offset_Y(y);
@@ -108,30 +108,27 @@ void run_cpu_fractal(std::vector<pixel_t>& h_image_stack, const fractal_params& 
 
                 if(is_valid)
                 {
-                    image(y,x) = 255;
+                    image(y,x) = params.MAX_ITER-1; 
                     //cloud_indices.emplace_back(x, y, z);
                 }
             }   
         }
 
-				bool debug_mode = false;
+        bool debug_mode = false;
+        if(debug_mode)
+        {
+            auto px_sum = cv::sum(cv::sum(image)) / static_cast<float>(params.MAX_ITER-1);
+            std::cout << "Image " << z << " Generated... has " << ((px_sum[0] > 0) ? std::to_string(px_sum[0]):"NO") << " non-zero elements" << std::endl;
 
-				if(debug_mode)
-				{
-        auto px_sum = cv::sum(cv::sum(image)) / 255;
-        std::cout << "Image " << z << " Generated... has " << ((px_sum[0] > 0) ? std::to_string(px_sum[0]):"NO") << " non-zero elements" << std::endl;
+            std::string cpuslice_fname {"cpuslice_" + std::to_string(z) + ".png"};
+            cv::imwrite(cpuslice_fname, image);
 
-        std::string cpuslice_fname {"cpuslice_" + std::to_string(z) + ".png"};
-        cv::imwrite(cpuslice_fname, image);
-
-        cv::Mat_<pixel_t> display_image = image;
-        cv::imshow("cpuslice", display_image);
-        cv::waitKey(10);
-				}
+            cv::Mat_<pixel_t> display_image = image;
+            cv::imshow("cpuslice", display_image);
+            cv::waitKey(10);
+        }
     }
 }
-
-
 
 }
 

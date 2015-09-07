@@ -31,6 +31,11 @@ set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS}; -std=c++11 -O3 -gencode arch=compute_30,
 add_subdirectory(fractal_gen)
 add_subdirectory(visualize)
 
+set (cpufractal_src cpufractal_main.cpp)
+add_executable(cpuogre_fractals ${cpufractal_src}) 
+target_link_libraries(cpuogre_fractals ogrevis)
+
+
 set (oclfractal_src oclfractal_main.cpp)
 add_executable(oclogre_fractals ${oclfractal_src}) 
 target_link_libraries(oclogre_fractals ${OPENCL_LIBRARIES} ogrevis)

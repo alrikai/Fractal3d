@@ -16,7 +16,7 @@
 #include <cuda_runtime.h>
 #include <opencv2/opencv.hpp>
 
-#include "../cpu_fractal.hpp"
+//#include "../cpu_fractal.hpp"
 //#include "util/ocl_helpers.hpp"
 #include "fractal3d.h"
 
@@ -92,7 +92,7 @@ void run_cuda_fractal(std::vector<data_t>& h_image_stack, const fractal_params& 
     cuda_error_check (cu_error_id);
 
     //e.g. MANDELBROT --> 0, JULIA --> 1, ETC... TODO: define this mapping...
-    static constexpr int FRACTAL_ID = MANDELBROT;
+    static constexpr int FRACTAL_ID = JULIA; //MANDELBROT;
     run_fractalgen<data_t, FRACTAL_ID> (dev_image, depth_idx, dimensions, constants, flt_constants);
 
     //------------------------------------------------------
@@ -106,7 +106,7 @@ void run_cuda_fractal(std::vector<data_t>& h_image_stack, const fractal_params& 
     cu_error_id = cudaMemcpy(host_slice_image, dev_image, imageslice_sz, cudaMemcpyDeviceToHost); 
     cuda_error_check (cu_error_id);
   
-    bool verbose_run = !false;
+    bool verbose_run = false;
     if(verbose_run)
     {
       auto slice_sum = std::accumulate(&h_image_stack[h_image_stack_offset], &h_image_stack[h_image_stack_offset] + imageslice_sz, 0);

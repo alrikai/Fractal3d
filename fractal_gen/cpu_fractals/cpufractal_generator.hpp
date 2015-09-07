@@ -1,5 +1,5 @@
-#ifndef FRACTAL_3D_FRACTAL_GEN_CUDA_FRACTALS_GENERATOR_HPP
-#define FRACTAL_3D_FRACTAL_GEN_CUDA_FRACTALS_GENERATOR_HPP
+#ifndef FRACTAL_3D_FRACTAL_GEN_CPU_FRACTALS_GENERATOR_HPP
+#define FRACTAL_3D_FRACTAL_GEN_CPU_FRACTALS_GENERATOR_HPP
 
 #include <iostream>
 #include <algorithm>
@@ -7,16 +7,14 @@
 #include "util/fractal_helpers.hpp"
 #include "fractalgen3d.hpp"
 
-//#include "cpu_fractals/fractalgen3d.hpp"
-
 template <typename point_t, typename data_t>
-class cudaFractals
+class cpuFractals
 {
 public:
-  cudaFractals()
+  cpuFractals()
   {}
 
-  virtual ~cudaFractals()
+  virtual ~cpuFractals()
   {}
 
   virtual void make_fractal(std::vector<data_t>& h_image_stack, fractal_params& fractalgen_params)
@@ -24,12 +22,13 @@ public:
     //NOTE: need to dynamically allocate, as the memory requirements become prohibitive very fast (e.g. 512 x 512 x 512 of ints --> 4*2^27 bytes)
 
     std::cout << "Making fractal... " << std::endl;
-    run_cuda_fractal<data_t>(h_image_stack, fractalgen_params);
-		//cpu_fractals::run_cpu_fractal<data_t>(h_image_stack, fractalgen_params);
+
+	cpu_fractals::run_cpu_fractal<data_t>(h_image_stack, fractalgen_params);
+
     std::cout << "Making Point Cloud... " << std::endl;
 
-//		auto fracstack_sum = std::accumulate(h_image_stack.begin(), h_image_stack.end(), 0);
-//	std::cout << "NOTE: stack sum is " << fracstack_sum << std::endl;
+//	auto fracstack_sum = std::accumulate(h_image_stack.begin(), h_image_stack.end(), 0);
+//    std::cout << "NOTE: stack sum is " << fracstack_sum << std::endl;
 
   //-------------------------------------------------------
 

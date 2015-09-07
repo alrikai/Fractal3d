@@ -1,3 +1,6 @@
+#ifndef FRACTAL_3D_FRACTAL_GEN_OCL_FRACTALS_GENERATOR_HPP
+#define FRACTAL_3D_FRACTAL_GEN_OCL_FRACTALS_GENERATOR_HPP
+
 #include <iostream>
 #include <algorithm>
 
@@ -6,7 +9,7 @@
 #include "util/fractal_helpers.hpp"
 #include "fractalgen3d.hpp"
 
-#include "../cpu_fractal.hpp"
+//#include "cpu_fractals/fractalgen3d.hpp"
 
 template <typename point_t, typename data_t>
 class oclFractals
@@ -24,11 +27,11 @@ public:
 
     std::cout << "Making fractal... " << std::endl;
     run_ocl_fractal<data_t>(h_image_stack, fractalgen_params);
-		//cpu_fractals::run_cpu_fractal<data_t>(h_image_stack, fractalgen_params);
+	//cpu_fractals::run_cpu_fractal<data_t>(h_image_stack, fractalgen_params);
     std::cout << "Making Point Cloud... " << std::endl;
 
-		auto fracstack_sum = std::accumulate(h_image_stack.begin(), h_image_stack.end(), 0);
-		std::cout << "NOTE: stack sum is " << fracstack_sum << std::endl;
+	auto fracstack_sum = std::accumulate(h_image_stack.begin(), h_image_stack.end(), 0);
+	std::cout << "NOTE: stack sum is " << fracstack_sum << std::endl;
 
   //-------------------------------------------------------
 
@@ -56,3 +59,4 @@ public:
   }
 };
 
+#endif

@@ -20,6 +20,8 @@ __device__ float4 mandelbulb(const float3 dim_limits, const float r, const float
     return out_coords;
 }
 
+//TODO: implement some other fractal functions here....
+
 template <typename pixel_t, int FRACTAL_ID> 
 __global__ void fractal3d_kernel (pixel_t* image,
                            const int depth_idx,
@@ -39,11 +41,7 @@ __global__ void fractal3d_kernel (pixel_t* image,
     dim_limits.y = MIN_LIMIT + index_y * ((MAX_LIMIT - MIN_LIMIT) / dimensions.y);
     dim_limits.z = MIN_LIMIT + depth_idx * ((MAX_LIMIT - MIN_LIMIT) / dimensions.z);
 
-    float4 coords;
-    coords.x = 0.0f;
-    coords.y = 0.0f;
-    coords.z = 0.0f;
-    coords.w = 0.0f;
+    float4 coords = (float4) {0.0f, 0.0f, 0.0f, 0.0f};
 
     float r = 0.0f;
     float theta = 0.0f;

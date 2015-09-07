@@ -15,7 +15,7 @@
 #include <chrono>
 #include <stdexcept>
 
-#include "../cpu_fractal.hpp"
+//#include "../cpu_fractal.hpp"
 #include "util/ocl_helpers.hpp"
 
 namespace fractal_helpers
