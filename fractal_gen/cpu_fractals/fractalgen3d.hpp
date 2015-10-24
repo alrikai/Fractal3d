@@ -79,6 +79,12 @@ std::tuple<bool, pixel_t> mandel_point(const PixelPoint<data_t> px_idx, const in
     return std::make_tuple(is_valid, iter_num);
 }
 
+template <typename pixel_t, typename data_t>
+std::tuple<bool, pixel_t> mandel_quaternion_point(const PixelPoint<data_t> px_idx, const int order, const size_t num_iter) 
+{
+    
+}
+
 template <typename pixel_t>
 void run_cpu_fractal(std::vector<pixel_t>& h_image_stack, const fractal_params& params)
 {
@@ -129,6 +135,18 @@ void run_cpu_fractal(std::vector<pixel_t>& h_image_stack, const fractal_params& 
         }
     }
 }
+
+
+//EXPERIMENTAL: want to try generating 3D fractals using quaternion coordinates, as that's 
+//a more well-behaved / complete algebra than these chimeric triplex numbers 
+template <typename pixel_t>
+void run_cpu_fractal_quaternion (std::vector<pixel_t>& h_image_stack, const fractal_params& params)
+{
+
+
+
+}
+
 
 }
 

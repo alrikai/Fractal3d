@@ -12,9 +12,10 @@
 #include "util/fractal_helpers.hpp"
 #include "ogre_util.hpp"
 
-
 #include "controller/Controller.hpp"
 #include "controller/ControllerUtil.hpp"
+
+
 template <typename pixel_t>
 class FractalOgre
 {
@@ -125,7 +126,6 @@ template <typename pixel_t>
 template <typename point_t>
 void FractalOgre<pixel_t>::display_fractal (fractal_data<point_t, pixel_t> fractal)
 {
-  //put the fractal in the middle of the scene
   const std::vector<float> target_coord = fractal.target_coord;
   const float pt_factor = 2.0f;
 
@@ -138,23 +138,47 @@ void FractalOgre<pixel_t>::display_fractal (fractal_data<point_t, pixel_t> fract
             dim_avgs[1] += pt.y;
             dim_avgs[2] += pt.z;
         });
-
   //get the average coordinate
   dim_avgs[0] /= fractal_pts.size();
   dim_avgs[1] /= fractal_pts.size();
   dim_avgs[2] /= fractal_pts.size();
 
   std::cout << "Fractal Centroid: [" << dim_avgs[0] << ", " << dim_avgs[1] << ", " << dim_avgs[2] << "]" << std::endl; 
-    
+ 
+  //TODO: you should just compute this and store it, as you end up computing the distance again later
+  //when making the point color
+  //assanged as: [x-coord, y-coord, z-coord, distance]
+  std::vector<float> dim_max (4, 0);
+  //find the point with the greatest euclidean distance from the centroid. Used in the point coloring
+  std::for_each(fractal_pts.begin(), fractal_pts.end(), [dim_avgs, &dim_max]
+        (const point_t& pt)
+        {
+            //compute euclidean distance
+            float dx_dist = dim_avgs[0] - pt.x;
+            float dy_dist = dim_avgs[1] - pt.y;
+            float dz_dist = dim_avgs[2] - pt.z;
+            float dist = std::sqrt(dx_dist*dx_dist + dy_dist*dy_dist + dz_dist*dz_dist); 
+
+            //see if it's the max, if so store it
+            if(dist > dim_max[3]) {
+                dim_max[0] = pt.x;
+                dim_max[1] = pt.y;
+                dim_max[2] = pt.z;
+                dim_max[3] = dist;
+            }
+        });
+  
   float color_coeff = 1.0f / fractal.params.MAX_ITER;
   float alpha_coeff = 0.01f;    
 
-  //get the coordinates to place the tower at
+  //get the coordinates to place the fractal at
   const float height_offset = dim_avgs[0];
   const float width_offset = dim_avgs[1];
-  const float depth_offset = dim_avgs[2];
+  //place the fractal at an offset above the ground plane so it is all visible
+  const float z_offset = *std::max_element(dim_avgs.begin(), dim_avgs.end());
+  const float depth_offset = dim_avgs[2] - z_offset;
 
-  std::cout << "Naive Centroid: [" << height_offset << ", " << width_offset << ", " << depth_offset << "]" << std::endl;
+  std::cout << "Fractal Centroid: [" << height_offset << ", " << width_offset << ", " << depth_offset << "]" << std::endl;
 
   const std::string cloud_name = fractal_name + "_" + std::to_string(fractal_idx);
  
@@ -166,16 +190,34 @@ void FractalOgre<pixel_t>::display_fractal (fractal_data<point_t, pixel_t> fract
   {
       for (auto pt : fractal_pts)
       {   
-			  if(pt.x < 0 || pt.y < 0 || pt.z < 0)
-					std::cout << "NOTE: pt is bad -- [" << pt.x << ", " << pt.y << ", " << pt.z << "]" << std::endl; 
+          if(pt.x < 0 || pt.y < 0 || pt.z < 0) {
+		      std::cout << "NOTE: pt is bad -- [" << pt.x << ", " << pt.y << ", " << pt.z << "]" << std::endl; 
+          }
 
           fractal_obj->position(pt.x - height_offset, pt.y - width_offset, pt.z - depth_offset);
 
+          /* TODO: change the generation stage to keep the non-converging pixels, so we can use them as the 
+           * semi-transparent outer layer
+           *
+           * change the point color based on its proximity to the fractal centroid? Or would this
+           * make any difference?
+           * 
+           */
+
           //we have to have the points that converged be solid, and the rest be semi-transparent
-          if(pt.value >= fractal.params.MAX_ITER-1)
-              fractal_obj->colour(Ogre::ColourValue(0.0f, 0.0f, 0.0f, 1.0f));
-          else
+          if(pt.value >= fractal.params.MAX_ITER-1) {
+              float dx_dist = dim_avgs[0] - pt.x;
+              float dy_dist = dim_avgs[1] - pt.y;
+              float dz_dist = dim_avgs[2] - pt.z;
+              float dist = std::sqrt(dx_dist*dx_dist + dy_dist*dy_dist + dz_dist*dz_dist); 
+              float color_scale = 1.0f - (dim_max [3] / dist);
+
+              //we want the center pixel to be all-black, and the outer pixels from there to get 
+              //progressivly lighter. Just have it be green for now... green is a nice color 
+              fractal_obj->colour(Ogre::ColourValue(0.f, color_scale, 0.f, 1.0f));
+          } else {
               fractal_obj->colour(Ogre::ColourValue(0.0f, color_coeff * pt.value, 0.0f, alpha_coeff * pt.value));
+          }
       }
   }
   fractal_obj->end();
@@ -239,8 +281,10 @@ void FractalOgre<pixel_t>::display_loop()
 
       //////////////////////////////////////////////////////
       //for fun: try rotating a fractal
-      if(current_fractal_node)
-        current_fractal_node->yaw(Ogre::Radian(3.14159265/5000.0f));
+      if(current_fractal_node) {
+        //current_fractal_node->yaw(Ogre::Radian(3.14159265/5000.0f));
+        current_fractal_node->roll(Ogre::Radian(3.14159265/5000.0f));
+      }
       //////////////////////////////////////////////////////
 
       auto end_time = std::chrono::high_resolution_clock::now(); 
