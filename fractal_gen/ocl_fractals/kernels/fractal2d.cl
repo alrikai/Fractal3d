@@ -1,3 +1,14 @@
+// fractal2d.cl -- part of the OpenCL fractal3d implementation 
+//
+// Copyright (C) 2015 Alrik Firl 
+//
+// This software may be modified and distributed under the terms
+// of the MIT license.  See the LICENSE file for details.
+//
+
+
+
+
 __kernel void fractal2d
          (__global uint* image,
           const float4 limits,

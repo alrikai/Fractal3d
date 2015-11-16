@@ -1,5 +1,13 @@
 #include "fractal3d.h"
 
+/* fractal3d.cu -- part of the CUDA fractal3d implementation 
+ *
+ * Copyright (C) 2015 Alrik Firl 
+ *
+ * This software may be modified and distributed under the terms
+ * of the MIT license.  See the LICENSE file for details.
+ */
+
 __device__ float4 juliabulb(const float3 dim_limits, const float r, const float theta, const float phi)
 {
     float4 out_coords;

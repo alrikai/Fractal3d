@@ -1,3 +1,13 @@
+/* fractalgen3d.hpp -- part of the CUDA fractal3d implementation 
+ *
+ * Copyright (C) 2015 Alrik Firl 
+ *
+ * This software may be modified and distributed under the terms
+ * of the MIT license.  See the LICENSE file for details.
+ */
+
+
+
 #ifndef CUDA_FRACTALS_3D_HPP
 #define CUDA_FRACTALS_3D_HPP
 

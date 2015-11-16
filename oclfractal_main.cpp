@@ -1,3 +1,11 @@
+/* oclfractal_main.cpp -- part of the fractal3d implementation 
+ *
+ * Copyright (C) 2015 Alrik Firl 
+ *
+ * This software may be modified and distributed under the terms
+ * of the MIT license.  See the LICENSE file for details.
+ */
+
 #include "fractal_gen/fractal_generator.hpp"
 #include "fractal_gen/ocl_fractals/oclfractal_generator.hpp"
 #include "visualize/ogre_vis/ogre_vis.hpp"

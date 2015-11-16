@@ -1,3 +1,14 @@
+// fractal3d.cl -- part of the OpenCL fractal3d implementation 
+//
+// Copyright (C) 2015 Alrik Firl 
+//
+// This software may be modified and distributed under the terms
+// of the MIT license.  See the LICENSE file for details.
+//
+
+
+
+
 float4 juliabulb(const float3 dim_limits, const float r, const float theta, const float phi)
 {
     float4 out_coords;

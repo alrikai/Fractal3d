@@ -1,3 +1,12 @@
+/* fractals.cpp -- part of the fractal3d implementation 
+ *
+ * Copyright (C) 2015 Alrik Firl 
+ *
+ * This software may be modified and distributed under the terms
+ * of the MIT license.  See the LICENSE file for details.
+ */
+
+
 #include "fractals3d.hpp"
 //#include "fractals2d.hpp"
 //#include "visualize/vtk_vis/mesh_vis.h"

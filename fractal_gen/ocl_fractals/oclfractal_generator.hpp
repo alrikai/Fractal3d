@@ -1,3 +1,13 @@
+/* oclfractal_generator.hpp -- part of the fractal3d implementation 
+ *
+ * Copyright (C) 2015 Alrik Firl 
+ *
+ * This software may be modified and distributed under the terms
+ * of the MIT license.  See the LICENSE file for details.
+ */
+
+
+
 #ifndef FRACTAL_3D_FRACTAL_GEN_OCL_FRACTALS_GENERATOR_HPP
 #define FRACTAL_3D_FRACTAL_GEN_OCL_FRACTALS_GENERATOR_HPP
 

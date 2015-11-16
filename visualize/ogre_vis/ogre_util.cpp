@@ -1,3 +1,11 @@
+/* ogre_util.cpp -- part of the fractal3d implementation 
+ *
+ * Copyright (C) 2015 Alrik Firl 
+ *
+ * This software may be modified and distributed under the terms
+ * of the MIT license.  See the LICENSE file for details.
+ */
+
 
 #include "ogre_util.hpp"
 #include <iostream>

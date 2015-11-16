@@ -1,3 +1,12 @@
+/* fractal3d.h -- part of the CUDA fractal3d implementation 
+ *
+ * Copyright (C) 2015 Alrik Firl 
+ *
+ * This software may be modified and distributed under the terms
+ * of the MIT license.  See the LICENSE file for details.
+ */
+
+
 #ifndef FRACTAL_GEN_CUDA_FRACTALS_FRACTAL3D_CUH
 #define FRACTAL_GEN_CUDA_FRACTALS_FRACTAL3D_CUH
 
